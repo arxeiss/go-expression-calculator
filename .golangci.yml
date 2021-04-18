@@ -1,0 +1,37 @@
+---
+linters:
+  enable:
+    # By Default
+    - deadcode
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - structcheck
+    - typecheck
+    - unused
+    - varcheck
+    # Extra
+    - lll
+    - asciicheck
+    - cyclop
+    - gofmt
+    - goimports
+    - ifshort
+    - prealloc
+    - revive
+    - unconvert
+    - whitespace
+
+linters-settings:
+  lll:
+    line-length: 120
+    tab-width: 4
+  goimports:
+    local-prefixes: github.com/arxeiss/go-expression-calculator
+  golint:
+    min-confidence: 0.8
+
+# issues:
+#   exclude-rules:

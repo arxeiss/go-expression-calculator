@@ -1,0 +1,25 @@
+name: Test Code
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  lint_and_test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.15.x
+      - name: Install dependencies
+        run: make install_tools
+      - name: Run lint
+        run: make lint
+      - name: Run tests
+        run: make tests

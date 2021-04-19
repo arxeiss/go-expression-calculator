@@ -38,7 +38,7 @@ func (matcher *TokenMatcher) Match(actual interface{}) (success bool, err error)
 			token.StartPosition() == matcher.startPos &&
 			token.EndPosition() == matcher.endPos, nil
 	}
-	return false, fmt.Errorf("MatchToken matcher expects a lexer.Token Got:\n%s", format.Object(actual, 1))
+	return false, fmt.Errorf("matcher MatchToken expects a `lexer.Token` Got:\n%s", format.Object(actual, 1))
 }
 
 func (matcher *TokenMatcher) FailureMessage(actual interface{}) (message string) {

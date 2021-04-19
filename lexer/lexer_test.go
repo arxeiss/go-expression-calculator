@@ -13,7 +13,7 @@ import (
 
 var _ = Describe("Tokenize", func() {
 	It("Handle all tokens", func() {
-		allTokensInput := "(**^s0m3_Identifier)//  %+-*159.4587e-5/"
+		allTokensInput := "(**^s0m3_Identifier)//  %+-*159.4587e-5/" // #nosec G101
 		l := lexer.NewLexer(allTokensInput)
 		Expect(l.Expression()).To(Equal(allTokensInput))
 		tokens, err := l.Tokenize()
@@ -60,7 +60,7 @@ var _ = Describe("Tokenize", func() {
 			l := lexer.NewLexer(expr)
 			tokens, err := l.Tokenize()
 			Expect(tokens).To(BeNil())
-			lexErr := err.(*lexer.LexerError)
+			lexErr := err.(*lexer.Error)
 			Expect(lexErr.Position()).To(Equal(pos))
 			Expect(lexErr.Error()).To(Equal(errStr))
 			Expect(lexErr.Unwrap()).To(Equal(wrapperErr))
@@ -71,7 +71,7 @@ var _ = Describe("Tokenize", func() {
 	)
 
 	It("Handle empty error", func() {
-		err := lexer.LexerError{}
+		err := lexer.Error{}
 		Expect(err.Position()).To(Equal(-1))
 		Expect(err.Error()).To(Equal("unexpected error"))
 		Expect(err.Unwrap()).To(BeNil())

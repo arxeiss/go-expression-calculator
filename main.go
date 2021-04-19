@@ -24,7 +24,7 @@ func prettyPrintError(l *lexer.Lexer, err error) {
 	if err == nil {
 		return
 	}
-	lexerErr := &lexer.LexerError{}
+	lexerErr := &lexer.Error{}
 	if !errors.As(err, &lexerErr) {
 		fmt.Println(err.Error())
 		return

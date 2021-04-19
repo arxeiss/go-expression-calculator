@@ -11,13 +11,13 @@ var (
 	ErrInvalidNumber  = errors.New("cannot parse number")
 )
 
-type LexerError struct {
+type Error struct {
 	token    *Token
 	position *int
 	err      error
 }
 
-func (e *LexerError) Position() int {
+func (e *Error) Position() int {
 	if e.token != nil {
 		return e.token.startPos
 	}
@@ -27,11 +27,11 @@ func (e *LexerError) Position() int {
 	return -1
 }
 
-func (e *LexerError) Unwrap() error {
+func (e *Error) Unwrap() error {
 	return e.err
 }
 
-func (e *LexerError) Error() string {
+func (e *Error) Error() string {
 	b := strings.Builder{}
 	pos := e.Position()
 
@@ -61,15 +61,15 @@ func (e *LexerError) Error() string {
 	return b.String()
 }
 
-func PositionError(pos int, err error) *LexerError {
-	return &LexerError{
+func PositionError(pos int, err error) *Error {
+	return &Error{
 		position: &pos,
 		err:      err,
 	}
 }
 
-func TokenError(token *Token, err error) *LexerError {
-	return &LexerError{
+func TokenError(token *Token, err error) *Error {
+	return &Error{
 		token: token,
 		err:   err,
 	}

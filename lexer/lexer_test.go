@@ -32,6 +32,7 @@ var _ = Describe("Tokenize", func() {
 			"10": PointTo(MatchToken(lexer.Multiplication, 0, "", 27, 28)),
 			"11": PointTo(MatchToken(lexer.Number, 159.4587e-5, "", 28, 39)),
 			"12": PointTo(MatchToken(lexer.Division, 0, "", 39, 40)),
+			"13": PointTo(MatchToken(lexer.EOL, 0, "", 40, 40)),
 		}))
 	})
 
@@ -40,8 +41,9 @@ var _ = Describe("Tokenize", func() {
 			l := lexer.NewLexer(expr)
 			tokens, err := l.Tokenize()
 			Expect(err).To(Succeed())
-			Expect(tokens).To(HaveLen(1))
+			Expect(tokens).To(HaveLen(2))
 			Expect(tokens[0].Value()).To(valueMatcher)
+			Expect(tokens[1].Type()).To(Equal(lexer.EOL))
 		},
 		Entry("Whole numbers only", "123", BeEquivalentTo(123)),
 		Entry("Decimal", "876.93", BeEquivalentTo(876.93)),
@@ -51,8 +53,8 @@ var _ = Describe("Tokenize", func() {
 		Entry("Decimal with exponent", "876.93e3", BeEquivalentTo(876930)),
 		Entry("Fraction part only with exponent", ".72e5", BeEquivalentTo(72000)),
 
-		Entry("Decimal with positive exponent", ".047e+5", BeEquivalentTo(4700)),
-		Entry("Decimal with negative exponent", "4.7e-5", BeEquivalentTo(0.000047)),
+		Entry("With positive exponent", ".047e+5", BeEquivalentTo(4700)),
+		Entry("With negative exponent", "4.7e-5", BeEquivalentTo(0.000047)),
 	)
 
 	DescribeTable("Handle invalid character error",

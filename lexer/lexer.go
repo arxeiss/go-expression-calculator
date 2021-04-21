@@ -47,6 +47,7 @@ func (l *Lexer) Tokenize() ([]*Token, error) {
 	if lastIndex != len(l.expr) {
 		return nil, PositionError(lastIndex, ErrUnexpectedChar)
 	}
+	expr = append(expr, &Token{tType: EOL, startPos: lastIndex, endPos: lastIndex})
 	return expr, nil
 }
 

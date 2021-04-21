@@ -13,15 +13,15 @@ linters:
     - unused
     - varcheck
     # Extra
-    - lll
     - asciicheck
     - cyclop
     - gocritic
-    - golint
     - gofmt
-    - gosec
     - goimports
+    - golint
+    - gosec
     - ifshort
+    - lll
     - prealloc
     - revive
     - unconvert

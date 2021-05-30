@@ -26,6 +26,13 @@ linters:
     - revive
     - unconvert
     - whitespace
+  # disable:
+  #   - gosimple
+
+issues:
+  # exclude-use-default: false
+  max-issues-per-linter: 0
+  max-same-issues: 0
 
 linters-settings:
   lll:
@@ -35,6 +42,8 @@ linters-settings:
     local-prefixes: github.com/arxeiss/go-expression-calculator
   golint:
     min-confidence: 0 # 0 is most strict
+  cyclop:
+    max-complexity: 15
 
 # issues:
 #   exclude-rules:

@@ -2,15 +2,17 @@ package lexer
 
 var (
 	tokenTypeStr = []string{
-		"EOL", "Unknown", "LPar", "RPar", "Exponent", "Multiplication", "Division", "FloorDiv", "Modulus",
-		"Addition", "Substraction", "Number", "Identifier", "Whitespace"}
+		"EOL", "Whitespace", "Identifier", "LPar", "RPar", "Exponent", "Multiplication", "Division", "FloorDiv",
+		"Modulus", "Addition", "Substraction", "Number", "UnaryAddition", "UnarySubstraction"}
 )
 
 type TokenType uint8
 
 const (
 	EOL TokenType = iota
-	Unknown
+	Whitespace
+
+	Identifier
 	LPar
 	RPar
 	Exponent
@@ -21,8 +23,10 @@ const (
 	Addition
 	Substraction
 	Number
-	Identifier
-	Whitespace
+
+	// Unary operators cannot be recognized by lexer, but are prepared for parsers
+	UnaryAddition
+	UnarySubstraction
 )
 
 func (tt TokenType) String() string {
@@ -46,22 +50,34 @@ func NewToken(tType TokenType, value float64, idName string, startPos, endPos in
 	}
 }
 
-func (t Token) Type() TokenType {
+func (t *Token) Type() TokenType {
 	return t.tType
 }
 
-func (t Token) Value() float64 {
+func (t *Token) Value() float64 {
 	return t.value
 }
 
-func (t Token) Identifier() string {
+func (t *Token) Identifier() string {
 	return t.idName
 }
 
-func (t Token) StartPosition() int {
+func (t *Token) StartPosition() int {
 	return t.startPos
 }
 
-func (t Token) EndPosition() int {
+func (t *Token) EndPosition() int {
 	return t.endPos
+}
+
+func (t *Token) ChangeToUnary() error {
+	switch t.tType {
+	case Addition, UnaryAddition:
+		t.tType = UnaryAddition
+	case Substraction, UnarySubstraction:
+		t.tType = UnarySubstraction
+	default:
+		return ErrInvalidUnary
+	}
+	return nil
 }

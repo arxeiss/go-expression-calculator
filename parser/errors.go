@@ -1,31 +1,22 @@
-package lexer
+package parser
 
 import (
-	"errors"
 	"strconv"
 	"strings"
-)
 
-var (
-	ErrUnexpectedChar = errors.New("unexpected character")
-	ErrInvalidNumber  = errors.New("cannot parse number")
-	ErrInvalidUnary   = errors.New("only addition and substraction can be changed to unary")
+	"github.com/arxeiss/go-expression-calculator/lexer"
 )
 
 type Error struct {
-	token    *Token
-	position *int
-	err      error
+	token *lexer.Token
+	err   error
 }
 
 // Position returns 0 based index of error in original input expression
 // If position is not set, -1 is returned
 func (e *Error) Position() int {
 	if e.token != nil {
-		return e.token.startPos
-	}
-	if e.position != nil {
-		return *e.position
+		return e.token.StartPosition()
 	}
 	return -1
 }
@@ -54,7 +45,7 @@ func (e *Error) Error() string {
 	}
 	if e.token != nil {
 		b.WriteString("; found ")
-		b.WriteString(e.token.tType.String())
+		b.WriteString(e.token.Type().String())
 		b.WriteString(" token")
 	}
 
@@ -64,14 +55,7 @@ func (e *Error) Error() string {
 	return b.String()
 }
 
-func PositionError(pos int, err error) *Error {
-	return &Error{
-		position: &pos,
-		err:      err,
-	}
-}
-
-func TokenError(token *Token, err error) *Error {
+func ParseError(token *lexer.Token, err error) *Error {
 	return &Error{
 		token: token,
 		err:   err,

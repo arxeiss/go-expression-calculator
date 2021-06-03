@@ -8,33 +8,50 @@ import (
 
 	"github.com/fatih/color"
 
+	"github.com/arxeiss/go-expression-calculator/ast"
 	"github.com/arxeiss/go-expression-calculator/lexer"
+	"github.com/arxeiss/go-expression-calculator/parser"
+	"github.com/arxeiss/go-expression-calculator/parser/shuntyard"
 )
 
 const PrettyPrintErrorOffset = 15
 
 func main() {
-	l := lexer.NewLexer("  2.58e0 + (sin(5^4)) *  55  +   77 // 8  ")
+	l := lexer.NewLexer("  2.58e0 + (sin(5^4)) *  y  +  77 // some_variable  ")
 	expr, err := l.Tokenize()
-	prettyPrintError(l, err)
-	_ = expr
+	if err != nil {
+		prettyPrintError(l.Expression(), err)
+		return
+	}
+	rootNode, err := shuntyard.NewParser(parser.DefaultTokenPriorities()).Parse(expr)
+	if err != nil {
+		prettyPrintError(l.Expression(), err)
+		return
+	}
+	fmt.Print(ast.ToTreeDrawer(rootNode))
 }
 
-func prettyPrintError(l *lexer.Lexer, err error) {
+func prettyPrintError(expr string, err error) {
 	if err == nil {
 		return
 	}
+	pos := -1
+	prefix := "Error"
 	lexerErr := &lexer.Error{}
-	if !errors.As(err, &lexerErr) {
-		fmt.Println(err.Error())
-		return
+	if errors.As(err, &lexerErr) {
+		pos = lexerErr.Position()
+		prefix = "Lexer error"
 	}
-	pos := lexerErr.Position()
+	parserErr := &parser.Error{}
+	if errors.As(err, &parserErr) {
+		pos = parserErr.Position()
+		prefix = "Parser error"
+	}
+
 	if pos < 0 {
 		fmt.Println(err.Error())
 		return
 	}
-	expr := l.Expression()
 	start := pos - PrettyPrintErrorOffset
 	end := pos + PrettyPrintErrorOffset
 	if start < 0 {
@@ -44,7 +61,7 @@ func prettyPrintError(l *lexer.Lexer, err error) {
 		end = len(expr)
 	}
 
-	fmt.Print(color.RedString("\n  Error: "), color.HiRedString(lexerErr.Error()))
+	fmt.Print(color.RedString("\n  %s: ", prefix), color.HiRedString(err.Error()))
 	fmt.Printf(
 		"\n   | %s\n   | %s^\n\n",
 		colorizeCode(expr[start:end]),

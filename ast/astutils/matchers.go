@@ -64,7 +64,7 @@ func MatchNumericNode(value interface{}) types.GomegaMatcher {
 	}
 }
 
-// MatchNumericNode expects types.GomegaMatcher or passed name will be compared with gomega.Equal
+// MatchVariableNode expects types.GomegaMatcher or passed name will be compared with gomega.Equal
 func MatchVariableNode(name interface{}) types.GomegaMatcher {
 	return &variableMatcher{
 		name: name,

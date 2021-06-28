@@ -151,7 +151,7 @@ func (matcher *unaryMatcher) NegatedFailureMessage(actual interface{}) (message 
 }
 
 func (matcher *numericMatcher) Match(actual interface{}) (success bool, err error) {
-	if val, ok := actual.(ast.NumericNode); ok {
+	if val, ok := actual.(*ast.NumericNode); ok {
 		var valMatcher types.GomegaMatcher
 		switch vm := matcher.value.(type) {
 		case types.GomegaMatcher:
@@ -163,7 +163,7 @@ func (matcher *numericMatcher) Match(actual interface{}) (success bool, err erro
 		default:
 			valMatcher = gomega.Equal(matcher.value)
 		}
-		matcher.failures = matchNode(valMatcher, float64(val), " -> Value", matcher.failures)
+		matcher.failures = matchNode(valMatcher, val.Value(), " -> Value", matcher.failures)
 
 		return len(matcher.failures) == 0, nil
 	}
@@ -179,14 +179,14 @@ func (matcher *numericMatcher) NegatedFailureMessage(actual interface{}) (messag
 }
 
 func (matcher *variableMatcher) Match(actual interface{}) (success bool, err error) {
-	if val, ok := actual.(ast.VariableNode); ok {
+	if val, ok := actual.(*ast.VariableNode); ok {
 		var valMatcher types.GomegaMatcher
 		if vm, ok := matcher.name.(types.GomegaMatcher); ok {
 			valMatcher = vm
 		} else {
 			valMatcher = gomega.Equal(matcher.name)
 		}
-		matcher.failures = matchNode(valMatcher, string(val), " -> Name", matcher.failures)
+		matcher.failures = matchNode(valMatcher, val.Name(), " -> Name", matcher.failures)
 
 		return len(matcher.failures) == 0, nil
 	}

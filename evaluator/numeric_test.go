@@ -104,7 +104,7 @@ var _ = Describe("Evaluator", func() {
 
 	It("Check function", func() {
 		ev, err := evaluator.NewNumericEvaluator(nil, map[string]evaluator.FunctionHandler{
-			"myFunc": func(x ...float64) (float64, error) { return x[0] + 2, nil },
+			"myFunc": {Handler: func(x ...float64) (float64, error) { return x[0] + 2, nil }},
 		})
 		Expect(err).To(Succeed())
 		res, err := ev.Eval(ast.NewFunctionNode("myFunc", ast.NewNumericNode(7, nil), nil))
@@ -123,9 +123,9 @@ var _ = Describe("Evaluator", func() {
 		ev, err := evaluator.NewNumericEvaluator(
 			map[string]float64{"X": 13.8, "Y": 8.9, "Z": 3},
 			map[string]evaluator.FunctionHandler{
-				"AddTwo": func(x ...float64) (float64, error) { return x[0] + 2, nil },
-				"Abs":    func(x ...float64) (float64, error) { return math.Abs(x[0]), nil },
-				"Ceil":   func(x ...float64) (float64, error) { return math.Ceil(x[0]), nil },
+				"AddTwo": {Handler: func(x ...float64) (float64, error) { return x[0] + 2, nil }},
+				"Abs":    {Handler: func(x ...float64) (float64, error) { return math.Abs(x[0]), nil }},
+				"Ceil":   {Handler: func(x ...float64) (float64, error) { return math.Ceil(x[0]), nil }},
 			},
 		)
 		Expect(err).To(Succeed())

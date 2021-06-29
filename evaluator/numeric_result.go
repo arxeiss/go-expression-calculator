@@ -4,19 +4,28 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"sort"
 	"strings"
 
 	"github.com/arxeiss/go-expression-calculator/ast"
 )
 
-type FunctionHandler func(x ...float64) (float64, error)
+type FunctionHandler struct {
+	Description string
+	Handler     func(x ...float64) (float64, error)
+}
 
 type NumericEvaluator struct {
 	variables map[string]float64
 	functions map[string]FunctionHandler
 }
 
-func NewNumericEvaluator(vars map[string]float64, funcs map[string]FunctionHandler) (*NumericEvaluator, error) {
+type VariableTuple struct {
+	Name  string
+	Value float64
+}
+
+func NewNumericEvaluator(vars map[string]float64, functions ...map[string]FunctionHandler) (*NumericEvaluator, error) {
 	variables := make(map[string]float64)
 	{
 		varNames := make(map[string]string)
@@ -31,24 +40,56 @@ func NewNumericEvaluator(vars map[string]float64, funcs map[string]FunctionHandl
 		}
 	}
 
-	functions := make(map[string]FunctionHandler)
+	finalFuncs := make(map[string]FunctionHandler)
 	{
 		funcsNames := make(map[string]string)
-		for kcs, v := range funcs {
-			k := strings.ToLower(kcs)
-			if pn, has := funcsNames[k]; has {
-				return nil, fmt.Errorf(
-					"function named '%s' was defined as '%s' before, function names are case insensitive", kcs, pn)
+		for _, funcs := range functions {
+			for kcs, v := range funcs {
+				k := strings.ToLower(kcs)
+				if pn, has := funcsNames[k]; has {
+					return nil, fmt.Errorf(
+						"function named '%s' was defined as '%s' before, function names are case insensitive", kcs, pn)
+				}
+				funcsNames[k] = kcs
+				finalFuncs[k] = v
 			}
-			funcsNames[k] = kcs
-			functions[k] = v
 		}
 	}
 
 	return &NumericEvaluator{
 		variables: variables,
-		functions: functions,
+		functions: finalFuncs,
 	}, nil
+}
+
+func (e *NumericEvaluator) VariableList() []VariableTuple {
+	keys := make([]string, 0, len(e.variables))
+	for k := range e.variables {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	ret := make([]VariableTuple, 0, len(keys))
+	for _, k := range keys {
+		ret = append(ret, VariableTuple{Name: k, Value: e.variables[k]})
+	}
+
+	return ret
+}
+
+func (e *NumericEvaluator) FunctionList() [][2]string {
+	keys := make([]string, 0, len(e.functions))
+	for k := range e.functions {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	ret := make([][2]string, 0, len(keys))
+	for _, k := range keys {
+		ret = append(ret, [2]string{k, e.functions[k].Description})
+	}
+
+	return ret
 }
 
 func (e *NumericEvaluator) Eval(rootNode ast.Node) (float64, error) {
@@ -126,5 +167,17 @@ func (e *NumericEvaluator) handleFunction(n *ast.FunctionNode) (float64, error) 
 		return 0, err
 	}
 
-	return f(v)
+	return f.Handler(v)
+}
+
+func sortedStrKeys(input map[string]interface{}) []string {
+	keys := make([]string, 0, len(input))
+
+	for k := range input {
+		keys = append(keys, k)
+	}
+
+	sort.Strings(keys)
+
+	return keys
 }

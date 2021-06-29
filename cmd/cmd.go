@@ -68,7 +68,25 @@ var rootCmd = &cobra.Command{
 				fmt.Println(color.HiMagentaString("All done, good bye!"))
 				return nil
 			case "func", "funcs", "functions":
+				funcs := numEvaluator.FunctionList()
+				if len(funcs) == 0 {
+					fmt.Println(color.YellowString("There are no defined functions"))
+					continue
+				}
+				fmt.Println(color.GreenString("All functions:"))
+				for _, f := range funcs {
+					fmt.Printf("%s: %s\n", color.HiBlueString(f[0]), f[1])
+				}
 			case "vars", "variables":
+				vars := numEvaluator.VariableList()
+				if len(vars) == 0 {
+					fmt.Println(color.YellowString("There are no variables now"))
+					continue
+				}
+				fmt.Println(color.GreenString("All variables:"))
+				for _, f := range vars {
+					fmt.Printf("%s: %f\n", color.HiBlueString(f.Name), f.Value)
+				}
 			default:
 				parseExpression(numEvaluator, expr)
 			}

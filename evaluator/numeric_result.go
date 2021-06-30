@@ -169,15 +169,3 @@ func (e *NumericEvaluator) handleFunction(n *ast.FunctionNode) (float64, error) 
 
 	return f.Handler(v)
 }
-
-func sortedStrKeys(input map[string]interface{}) []string {
-	keys := make([]string, 0, len(input))
-
-	for k := range input {
-		keys = append(keys, k)
-	}
-
-	sort.Strings(keys)
-
-	return keys
-}

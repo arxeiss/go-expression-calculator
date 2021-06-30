@@ -4,12 +4,13 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/fatih/color"
+
 	"github.com/arxeiss/go-expression-calculator/ast"
 	"github.com/arxeiss/go-expression-calculator/evaluator"
 	"github.com/arxeiss/go-expression-calculator/lexer"
 	"github.com/arxeiss/go-expression-calculator/parser"
 	"github.com/arxeiss/go-expression-calculator/parser/shuntyard"
-	"github.com/fatih/color"
 )
 
 func parseExpression(numEval *evaluator.NumericEvaluator, expr string) {

@@ -25,6 +25,7 @@ const (
 	Number
 
 	// Unary operators cannot be recognized by lexer, but are prepared for parsers
+
 	UnaryAddition
 	UnarySubstraction
 )

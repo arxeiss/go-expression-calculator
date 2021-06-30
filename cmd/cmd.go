@@ -7,9 +7,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/arxeiss/go-expression-calculator/evaluator"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
+
+	"github.com/arxeiss/go-expression-calculator/evaluator"
 )
 
 var (

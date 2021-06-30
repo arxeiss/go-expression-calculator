@@ -22,17 +22,10 @@ linters:
     - ifshort
     - lll
     - prealloc
-    # - revive
+    - revive
     - stylecheck
     - unconvert
     - whitespace
-  # disable:
-  #   - gosimple
-
-issues:
-  # exclude-use-default: false
-  max-issues-per-linter: 0
-  max-same-issues: 0
 
 linters-settings:
   lll:
@@ -44,12 +37,18 @@ linters-settings:
     max-complexity: 15
   staticcheck:
     go: "1.15"
-    checks: ["all", "-ST1000", "ST1003", "ST1016", "ST1020", "ST1021", "ST1022"]
+    checks: ["all", "-ST1000"]
   stylecheck:
     go: "1.15"
-    checks: ["all", "-ST1000", "ST1003", "ST1016", "ST1020", "ST1021", "ST1022"]
-  # revive:
-  #   ignore-generated-header: true
+    checks: ["all", "-ST1000"]
 
-# issues:
-#   exclude-rules:
+issues:
+  exclude-use-default: false
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
+  exclude-rules:
+    - linters:
+        - revive
+      text: 'exported .* should have comment .*or be unexported'
+

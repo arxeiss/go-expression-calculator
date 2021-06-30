@@ -6,10 +6,11 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/fatih/color"
+
 	"github.com/arxeiss/go-expression-calculator/evaluator"
 	"github.com/arxeiss/go-expression-calculator/lexer"
 	"github.com/arxeiss/go-expression-calculator/parser"
-	"github.com/fatih/color"
 )
 
 const PrettyPrintErrorOffset = 15

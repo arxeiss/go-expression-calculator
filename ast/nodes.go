@@ -1,8 +1,9 @@
 package ast
 
 import (
-	"github.com/arxeiss/go-expression-calculator/lexer"
 	"github.com/m1gwings/treedrawer/tree"
+
+	"github.com/arxeiss/go-expression-calculator/lexer"
 )
 
 func ToTreeDrawer(rootNode Node) *tree.Tree {

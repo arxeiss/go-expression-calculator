@@ -33,7 +33,7 @@ func init() {
 var rootCmd = &cobra.Command{
 	Use:   "calculator",
 	Short: "Expression Calculator",
-	Long:  `Expression calculator in Go with REPL.`,
+	Long:  `Expression calculator in Go with REPL. Write 'help' to REPL console to get more info.`,
 	Args:  cobra.NoArgs,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		if !strInStrSlice(availableParsers, *flagParser) {
@@ -56,6 +56,7 @@ var rootCmd = &cobra.Command{
 			return err
 		}
 
+		fmt.Printf("Welcome to the expression calculator, write '%s' to get more info\n", color.HiCyanString("help"))
 		reader := bufio.NewReader(os.Stdin)
 		for {
 			fmt.Print(color.HiBlackString(">>> "))
@@ -68,6 +69,17 @@ var rootCmd = &cobra.Command{
 			case "exit":
 				fmt.Println(color.HiMagentaString("All done, good bye!"))
 				return nil
+			case "help":
+				fmt.Printf(
+					"%s\n   %s - %s\n   %s - %s\n   %s - %s\n   %s - %s\n   %s - %s\n",
+					"Write directly any expression to evaluate, or one of those commands:",
+					color.HiYellowString("functions  "), "Show all available functions",
+					color.HiYellowString("variables  "), "Prints all variables with values",
+					color.HiYellowString("help       "), "Show this help",
+					color.HiYellowString("tree {expr}"), "Write tree and then expression to print AST tree",
+					color.HiYellowString("exit       "), "Quit this REPL",
+				)
+				continue
 			case "func", "funcs", "functions":
 				funcs := numEvaluator.FunctionList()
 				if len(funcs) == 0 {

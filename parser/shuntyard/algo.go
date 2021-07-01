@@ -123,7 +123,7 @@ func (*Parser) handleNumber(
 	if expect == operatorToken {
 		return expect, nil, parser.ParseError(curToken, ErrExpectedOperator)
 	}
-	output = append(output, ast.NumericNode(curToken.Value()))
+	output = append(output, ast.NewNumericNode(curToken.Value(), curToken))
 	expect = operatorToken
 
 	return expect, output, nil
@@ -155,7 +155,7 @@ func (*Parser) handleIdentifier(
 		expect = operandToken
 	} else {
 		// Identifier is variable name
-		output = append(output, ast.VariableNode(tokenList[currIndex].Identifier()))
+		output = append(output, ast.NewVariableNode(tokenList[currIndex].Identifier(), tokenList[currIndex]))
 		expect = operatorToken
 	}
 
@@ -295,7 +295,7 @@ func (p *Parser) addToOutput(output []ast.Node, token *lexer.Token) ([]ast.Node,
 		if op, err = tokenTypeToOperation(t); err != nil {
 			return nil, err
 		}
-		output[len(output)-1] = ast.NewUnaryNode(op, output[len(output)-1])
+		output[len(output)-1] = ast.NewUnaryNode(op, output[len(output)-1], token)
 	case lexer.Addition, lexer.Substraction, lexer.Multiplication, lexer.Division, lexer.Exponent,
 		lexer.FloorDiv, lexer.Modulus:
 
@@ -309,13 +309,13 @@ func (p *Parser) addToOutput(output []ast.Node, token *lexer.Token) ([]ast.Node,
 		if op, err = tokenTypeToOperation(t); err != nil {
 			return nil, err
 		}
-		output[len(output)-1] = ast.NewBinaryNode(op, l, r)
+		output[len(output)-1] = ast.NewBinaryNode(op, l, r, token)
 	case lexer.Identifier:
 		// Current functions support only 1 parameter
 		if len(output) < 1 {
 			return nil, errors.New("internal error, missing value for function")
 		}
-		output[len(output)-1] = ast.NewFunctionNode(token.Identifier(), output[len(output)-1])
+		output[len(output)-1] = ast.NewFunctionNode(token.Identifier(), output[len(output)-1], token)
 	default:
 		return nil, fmt.Errorf("unexpected token '%s' received to add to output", t.String())
 	}

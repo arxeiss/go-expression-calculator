@@ -11,6 +11,9 @@ tests:
 lint:
 	golangci-lint run ./...
 
+build:
+	go build -o calculator
+
 fix_lint:
 	golangci-lint run --fix
 

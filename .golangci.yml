@@ -18,21 +18,14 @@ linters:
     - gocritic
     - gofmt
     - goimports
-    - golint
     - gosec
     - ifshort
     - lll
     - prealloc
     - revive
+    - stylecheck
     - unconvert
     - whitespace
-  # disable:
-  #   - gosimple
-
-issues:
-  # exclude-use-default: false
-  max-issues-per-linter: 0
-  max-same-issues: 0
 
 linters-settings:
   lll:
@@ -40,10 +33,22 @@ linters-settings:
     tab-width: 4
   goimports:
     local-prefixes: github.com/arxeiss/go-expression-calculator
-  golint:
-    min-confidence: 0 # 0 is most strict
   cyclop:
     max-complexity: 15
+  staticcheck:
+    go: "1.15"
+    checks: ["all", "-ST1000"]
+  stylecheck:
+    go: "1.15"
+    checks: ["all", "-ST1000"]
 
-# issues:
-#   exclude-rules:
+issues:
+  exclude-use-default: false
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
+  exclude-rules:
+    - linters:
+        - revive
+      text: 'exported .* should have comment .*or be unexported'
+

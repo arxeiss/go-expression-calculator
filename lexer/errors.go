@@ -7,9 +7,10 @@ import (
 )
 
 var (
-	ErrUnexpectedChar = errors.New("unexpected character")
-	ErrInvalidNumber  = errors.New("cannot parse number")
-	ErrInvalidUnary   = errors.New("only addition and substraction can be changed to unary")
+	ErrUnexpectedChar   = errors.New("unexpected character")
+	ErrNumberOutOfRange = errors.New("number is out of range")
+	ErrInvalidNumber    = errors.New("cannot parse number")
+	ErrInvalidUnary     = errors.New("only addition and substraction can be changed to unary")
 )
 
 type Error struct {

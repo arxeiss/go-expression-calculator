@@ -78,4 +78,14 @@ var _ = Describe("Tokenize", func() {
 		Expect(err.Error()).To(Equal("unexpected error"))
 		Expect(err.Unwrap()).To(BeNil())
 	})
+
+	It("Handle number out of range", func() {
+		l := lexer.NewLexer("1.7976931348623159e308")
+		tokens, err := l.Tokenize()
+		Expect(tokens).To(BeNil())
+		lexErr := err.(*lexer.Error)
+		Expect(lexErr.Position()).To(Equal(0))
+		Expect(lexErr.Error()).To(ContainSubstring("number is out of range; found Number token at position 0"))
+		Expect(lexErr.Unwrap()).To(MatchError(ContainSubstring("number is out of range")))
+	})
 })

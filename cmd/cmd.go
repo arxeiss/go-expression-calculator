@@ -88,7 +88,7 @@ var rootCmd = &cobra.Command{
 				}
 				fmt.Println(color.GreenString("All functions:"))
 				for _, f := range funcs {
-					fmt.Printf("%s: %s\n", color.HiBlueString(f[0]), f[1])
+					fmt.Printf("%s: %s\n", color.HiBlueString(f.Name), f.Description)
 				}
 			case "vars", "variables":
 				vars := numEvaluator.VariableList()

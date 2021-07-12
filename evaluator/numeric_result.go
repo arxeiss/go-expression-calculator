@@ -24,6 +24,9 @@ type VariableTuple struct {
 	Name  string
 	Value float64
 }
+type FunctionTuple struct {
+	Name, Description string
+}
 
 func NewNumericEvaluator(vars map[string]float64, functions ...map[string]FunctionHandler) (*NumericEvaluator, error) {
 	variables := make(map[string]float64)
@@ -77,16 +80,16 @@ func (e *NumericEvaluator) VariableList() []VariableTuple {
 	return ret
 }
 
-func (e *NumericEvaluator) FunctionList() [][2]string {
+func (e *NumericEvaluator) FunctionList() []FunctionTuple {
 	keys := make([]string, 0, len(e.functions))
 	for k := range e.functions {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
 
-	ret := make([][2]string, 0, len(keys))
+	ret := make([]FunctionTuple, 0, len(keys))
 	for _, k := range keys {
-		ret = append(ret, [2]string{k, e.functions[k].Description})
+		ret = append(ret, FunctionTuple{Name: k, Description: e.functions[k].Description})
 	}
 
 	return ret

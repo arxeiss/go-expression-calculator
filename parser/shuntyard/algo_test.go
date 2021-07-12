@@ -80,7 +80,8 @@ var _ = Describe("Successful parsing", func() {
 				),
 			),
 		))
-
+		// Just test it will not panic
+		Expect(ast.ToTreeDrawer(rootNode)).NotTo(BeNil())
 	})
 
 	It("Starts with unary substraction and number", func() {
@@ -259,6 +260,8 @@ var _ = DescribeTable("Handle errors",
 		Expect(parseErr.Position()).To(posMatcher)
 		Expect(parseErr.Error()).To(errMatcher)
 	},
+	Entry("Empty token list", []*lexer.Token{}, Equal(-1), ContainSubstring(shuntyard.ErrEmptyInput.Error())),
+
 	Entry("Two number tokens in a row", []*lexer.Token{
 		lexer.NewToken(lexer.Number, 20, "", 0, 2),
 		lexer.NewToken(lexer.Whitespace, 0, " ", 2, 3),

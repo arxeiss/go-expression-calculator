@@ -1,6 +1,7 @@
 package lexer
 
 import (
+	"errors"
 	"regexp"
 	"strconv"
 )
@@ -74,6 +75,9 @@ func (l *Lexer) handleSubMatches(t *Token, indexes []int, subMatchNames []string
 			t.tType = Number
 			var err error
 			if t.value, err = strconv.ParseFloat(l.expr[t.startPos:t.endPos], 64); err != nil {
+				if errors.Is(err, strconv.ErrRange) {
+					return false, TokenError(t, ErrNumberOutOfRange)
+				}
 				return false, TokenError(t, ErrInvalidNumber)
 			}
 			return true, nil

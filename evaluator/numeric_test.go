@@ -6,6 +6,7 @@ import (
 
 	"github.com/arxeiss/go-expression-calculator/ast"
 	"github.com/arxeiss/go-expression-calculator/evaluator"
+	"github.com/arxeiss/go-expression-calculator/lexer"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
@@ -33,8 +34,11 @@ var _ = Describe("Evaluator", func() {
 	It("Check undefined variable", func() {
 		ev, err := evaluator.NewNumericEvaluator(map[string]float64{"myVar": 89}, nil)
 		Expect(err).To(Succeed())
-		_, err = ev.Eval(ast.NewVariableNode("anotherVar", nil))
-		Expect(err).To(MatchError(ContainSubstring("undefined variable 'anotherVar'")))
+		_, err = ev.Eval(ast.NewVariableNode("anotherVar", lexer.NewToken(lexer.Addition, 0, "", 10, 12)))
+		evalErr, ok := err.(*evaluator.Error)
+		Expect(ok).To(BeTrue())
+		Expect(evalErr.Position()).To(Equal(10))
+		Expect(evalErr.Error()).To(ContainSubstring("undefined variable 'anotherVar'"))
 	})
 
 	Describe("Handle unary", func() {
@@ -168,5 +172,45 @@ var _ = Describe("Evaluator", func() {
 		Expect(strings.ToLower(err.Error())).To(
 			ContainSubstring("variable with name 'my_variable' was defined as 'my_variable'"),
 		)
+	})
+
+	It("Check error when defining same function with different case sensitivity", func() {
+		_, err := evaluator.NewNumericEvaluator(nil, evaluator.MathFunctions(), map[string]evaluator.FunctionHandler{
+			"aBS": {Description: "test", Handler: func(x ...float64) (float64, error) { return 0, nil }},
+		})
+		// order in map is non-deterministic, so names in error can also be in different order
+		Expect(strings.ToLower(err.Error())).To(
+			ContainSubstring("function named 'abs' was defined as 'abs' before"),
+		)
+	})
+
+	It("Variable list", func() {
+		ev, err := evaluator.NewNumericEvaluator(map[string]float64{
+			"c": 10,
+			"a": 5,
+			"b": 12,
+		})
+		Expect(err).To(Succeed())
+		sortedVarList := ev.VariableList()
+		Expect(sortedVarList).To(HaveLen(3))
+		Expect(sortedVarList[0].Name).To(Equal("a"))
+		Expect(sortedVarList[1].Name).To(Equal("b"))
+		Expect(sortedVarList[2].Name).To(Equal("c"))
+	})
+
+	It("Function list", func() {
+		ev, err := evaluator.NewNumericEvaluator(nil, map[string]evaluator.FunctionHandler{
+			"d": {},
+			"k": {},
+			"j": {},
+			"c": {},
+		})
+		Expect(err).To(Succeed())
+		sortedFuncList := ev.FunctionList()
+		Expect(sortedFuncList).To(HaveLen(4))
+		Expect(sortedFuncList[0].Name).To(Equal("c"))
+		Expect(sortedFuncList[1].Name).To(Equal("d"))
+		Expect(sortedFuncList[2].Name).To(Equal("j"))
+		Expect(sortedFuncList[3].Name).To(Equal("k"))
 	})
 })

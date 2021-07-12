@@ -17,6 +17,7 @@ const (
 )
 
 var (
+	ErrEmptyInput       = errors.New("there are no tokens to parse")
 	ErrExpectedOperand  = errors.New("expected number, identifier or left parenthesis")
 	ErrMultipleUnary    = errors.New("too many unary operators in a row")
 	ErrExpectedOperator = errors.New("expected operator or right parenthesis")
@@ -44,6 +45,10 @@ func (p *Parser) Parse(tokenList []*lexer.Token) (ast.Node, error) {
 	output := make([]ast.Node, 0)
 	opStack := make([]*lexer.Token, 0)
 	var err error
+
+	if len(tokenList) == 0 {
+		return nil, parser.ParseError(nil, ErrEmptyInput)
+	}
 
 tokenLoop:
 	for i := 0; i < len(tokenList); i++ {

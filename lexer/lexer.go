@@ -9,7 +9,7 @@ import (
 var (
 	//nolint:lll
 	tokenRegexp = regexp.MustCompile(
-		`\(|\)|\*\*|\^|//|%|\+|\-|\*|/|(?P<num>(?:[0-9]+(?:\.[0-9]+)?|\.[0-9]+)(?:e[+-]?[0-9]+)?)|(?P<id>(?i)[a-z_][a-z0-9_]*)|(?P<ws>\s+)`,
+		`\(|\)|\*\*|\^|//|%|\+|\-|\*|/|=|,|(?P<num>(?:[0-9]+(?:\.[0-9]+)?|\.[0-9]+)(?:e[+-]?[0-9]+)?)|(?P<id>(?i)[a-z_][a-z0-9_]*)|(?P<ws>\s+)`,
 	)
 )
 
@@ -113,6 +113,10 @@ func operatorTokenType(operator string) TokenType {
 		return Addition
 	case "-":
 		return Substraction
+	case "=":
+		return Equal
+	case ",":
+		return Comma
 	}
 	return EOL
 }

@@ -39,6 +39,8 @@ var _ = DescribeTable("TokenType stringer",
 	Entry("Addition", lexer.Addition, "Addition"),
 	Entry("Substraction", lexer.Substraction, "Substraction"),
 	Entry("Number", lexer.Number, "Number"),
+	Entry("Equal", lexer.Equal, "Equal"),
+	Entry("Comma", lexer.Comma, "Comma"),
 	Entry("UnaryAddition", lexer.UnaryAddition, "UnaryAddition"),
 	Entry("UnarySubstraction", lexer.UnarySubstraction, "UnarySubstraction"),
 )

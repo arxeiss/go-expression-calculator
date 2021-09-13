@@ -22,6 +22,7 @@ var _ Node = &NumericNode{}
 var _ Node = &VariableNode{}
 var _ Node = &UnaryNode{}
 var _ Node = &BinaryNode{}
+var _ Node = &AssignNode{}
 var _ Node = &FunctionNode{}
 
 type NumericNode struct {
@@ -127,6 +128,35 @@ func (n *BinaryNode) toTreeDrawer(t *tree.Tree) {
 	n.right.toTreeDrawer(t.AddChild(nil))
 }
 func (n *BinaryNode) GetToken() *lexer.Token {
+	return n.token
+}
+
+type AssignNode struct {
+	left  *VariableNode
+	right Node
+	token *lexer.Token
+}
+
+func NewAssignNode(left *VariableNode, right Node, token *lexer.Token) *AssignNode {
+	return &AssignNode{
+		left:  left,
+		right: right,
+		token: token,
+	}
+}
+
+func (n *AssignNode) Left() *VariableNode {
+	return n.left
+}
+func (n *AssignNode) Right() Node {
+	return n.right
+}
+func (n *AssignNode) toTreeDrawer(t *tree.Tree) {
+	t.SetVal(tree.NodeString(lexer.Equal))
+	n.left.toTreeDrawer(t.AddChild(nil))
+	n.right.toTreeDrawer(t.AddChild(nil))
+}
+func (n *AssignNode) GetToken() *lexer.Token {
 	return n.token
 }
 

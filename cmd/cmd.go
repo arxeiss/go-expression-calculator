@@ -11,6 +11,8 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/arxeiss/go-expression-calculator/evaluator"
+	"github.com/arxeiss/go-expression-calculator/parser"
+	"github.com/arxeiss/go-expression-calculator/parser/shuntyard"
 )
 
 var (
@@ -52,6 +54,10 @@ var rootCmd = &cobra.Command{
 			funcs = evaluator.MathFunctions()
 		}
 		numEvaluator, err := evaluator.NewNumericEvaluator(vars, funcs)
+		if err != nil {
+			return err
+		}
+		p, err := shuntyard.NewParser(parser.DefaultTokenPriorities())
 		if err != nil {
 			return err
 		}
@@ -101,7 +107,7 @@ var rootCmd = &cobra.Command{
 					fmt.Printf("%s: %f\n", color.HiBlueString(f.Name), f.Value)
 				}
 			default:
-				parseExpression(numEvaluator, expr)
+				parseExpression(numEvaluator, p, expr)
 			}
 		}
 	},

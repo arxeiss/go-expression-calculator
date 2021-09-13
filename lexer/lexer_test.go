@@ -13,7 +13,7 @@ import (
 
 var _ = Describe("Tokenize", func() {
 	It("Handle all tokens", func() {
-		allTokensInput := "(**^s0m3_Identifier)//  %+-*159.4587e-5/" // #nosec G101
+		allTokensInput := "(**^s0m3_Identifier)//,=  %+-*159.4587e-5/" // #nosec G101
 		l := lexer.NewLexer(allTokensInput)
 		Expect(l.Expression()).To(Equal(allTokensInput))
 		tokens, err := l.Tokenize()
@@ -25,14 +25,16 @@ var _ = Describe("Tokenize", func() {
 			"3":  PointTo(MatchToken(lexer.Identifier, 0, "s0m3_Identifier", 4, 19)),
 			"4":  PointTo(MatchToken(lexer.RPar, 0, "", 19, 20)),
 			"5":  PointTo(MatchToken(lexer.FloorDiv, 0, "", 20, 22)),
-			"6":  PointTo(MatchToken(lexer.Whitespace, 0, "", 22, 24)),
-			"7":  PointTo(MatchToken(lexer.Modulus, 0, "", 24, 25)),
-			"8":  PointTo(MatchToken(lexer.Addition, 0, "", 25, 26)),
-			"9":  PointTo(MatchToken(lexer.Substraction, 0, "", 26, 27)),
-			"10": PointTo(MatchToken(lexer.Multiplication, 0, "", 27, 28)),
-			"11": PointTo(MatchToken(lexer.Number, 159.4587e-5, "", 28, 39)),
-			"12": PointTo(MatchToken(lexer.Division, 0, "", 39, 40)),
-			"13": PointTo(MatchToken(lexer.EOL, 0, "", 40, 40)),
+			"6":  PointTo(MatchToken(lexer.Comma, 0, "", 22, 23)),
+			"7":  PointTo(MatchToken(lexer.Equal, 0, "", 23, 24)),
+			"8":  PointTo(MatchToken(lexer.Whitespace, 0, "", 24, 26)),
+			"9":  PointTo(MatchToken(lexer.Modulus, 0, "", 26, 27)),
+			"10": PointTo(MatchToken(lexer.Addition, 0, "", 27, 28)),
+			"11": PointTo(MatchToken(lexer.Substraction, 0, "", 28, 29)),
+			"12": PointTo(MatchToken(lexer.Multiplication, 0, "", 29, 30)),
+			"13": PointTo(MatchToken(lexer.Number, 159.4587e-5, "", 30, 41)),
+			"14": PointTo(MatchToken(lexer.Division, 0, "", 41, 42)),
+			"15": PointTo(MatchToken(lexer.EOL, 0, "", 42, 42)),
 		}))
 	})
 

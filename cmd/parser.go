@@ -10,10 +10,9 @@ import (
 	"github.com/arxeiss/go-expression-calculator/evaluator"
 	"github.com/arxeiss/go-expression-calculator/lexer"
 	"github.com/arxeiss/go-expression-calculator/parser"
-	"github.com/arxeiss/go-expression-calculator/parser/shuntyard"
 )
 
-func parseExpression(numEval *evaluator.NumericEvaluator, expr string) {
+func parseExpression(numEval *evaluator.NumericEvaluator, p parser.Parser, expr string) {
 	printTree := false
 	if strings.HasPrefix(expr, "tree") {
 		expr = strings.TrimSpace(expr[4:])
@@ -26,7 +25,7 @@ func parseExpression(numEval *evaluator.NumericEvaluator, expr string) {
 		prettyPrintError(expr, err)
 		return
 	}
-	rootNode, err := shuntyard.NewParser(parser.DefaultTokenPriorities()).Parse(tokenized)
+	rootNode, err := p.Parse(tokenized)
 	if err != nil {
 		prettyPrintError(l.Expression(), err)
 		return

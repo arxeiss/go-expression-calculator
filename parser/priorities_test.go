@@ -13,35 +13,33 @@ var _ = Describe("Priorities", func() {
 	It("Default priorities - Precedence", func() {
 
 		p := parser.DefaultTokenPriorities()
+		Expect(p.Normalize()).To(Succeed())
 
-		eol := p.GetPrecedence(lexer.EOL)
-		Expect(eol).To(BeNumerically(">=", 0))
-		Expect(p.GetPrecedence(lexer.Whitespace)).To(BeNumerically("==", eol))
+		equal := p.GetPrecedence(lexer.Equal)
+		Expect(equal).To(BeNumerically(">", 0))
 
 		addition := p.GetPrecedence(lexer.Addition)
-		Expect(addition).To(BeNumerically(">", eol))
+		Expect(addition).To(BeNumerically(">", equal))
 		Expect(p.GetPrecedence(lexer.Substraction)).To(BeNumerically("==", addition))
+		Expect(p.NextPrecedence(equal)).To(Equal(addition))
 
 		multiplication := p.GetPrecedence(lexer.Multiplication)
 		Expect(multiplication).To(BeNumerically(">", addition))
 		Expect(p.GetPrecedence(lexer.Division)).To(BeNumerically("==", multiplication))
 		Expect(p.GetPrecedence(lexer.FloorDiv)).To(BeNumerically("==", multiplication))
 		Expect(p.GetPrecedence(lexer.Modulus)).To(BeNumerically("==", multiplication))
+		Expect(p.NextPrecedence(addition)).To(Equal(multiplication))
 
 		unaryAddition := p.GetPrecedence(lexer.UnaryAddition)
 		Expect(unaryAddition).To(BeNumerically(">", multiplication))
 		Expect(p.GetPrecedence(lexer.UnarySubstraction)).To(BeNumerically("==", unaryAddition))
+		Expect(p.NextPrecedence(multiplication)).To(Equal(unaryAddition))
 
 		exponent := p.GetPrecedence(lexer.Exponent)
 		Expect(exponent).To(BeNumerically(">", unaryAddition))
+		Expect(p.NextPrecedence(unaryAddition)).To(Equal(exponent))
 
-		lpar := p.GetPrecedence(lexer.LPar)
-		Expect(lpar).To(BeNumerically(">", exponent))
-		Expect(p.GetPrecedence(lexer.RPar)).To(BeNumerically("==", lpar))
-
-		identifier := p.GetPrecedence(lexer.Identifier)
-		Expect(identifier).To(BeNumerically(">", lpar))
-		Expect(p.GetPrecedence(lexer.Number)).To(BeNumerically("==", identifier))
+		Expect(p.MaxPrecedence()).To(Equal(exponent))
 	})
 
 	It("Returns default values when token meta are not set", func() {
@@ -49,10 +47,32 @@ var _ = Describe("Priorities", func() {
 		p[lexer.Addition] = parser.TokenMeta{Precedence: 20, Associativity: parser.RightAssociativity}
 
 		Expect(p.GetAssociativity(lexer.Addition)).To(Equal(parser.RightAssociativity))
-		Expect(p.GetPrecedence(lexer.Addition)).To(Equal(20))
+		Expect(p.GetPrecedence(lexer.Addition)).To(BeNumerically("==", 20))
 
 		Expect(p.GetAssociativity(lexer.Exponent)).To(Equal(parser.LeftAssociativity))
-		Expect(p.GetPrecedence(lexer.Exponent)).To(Equal(0))
+		Expect(p.GetPrecedence(lexer.Exponent)).To(BeNumerically("==", 0))
+	})
+
+	It("Normalize - fails on zero precedence", func() {
+		p := parser.TokenPriorities{}
+		p[lexer.Addition] = parser.TokenMeta{Precedence: 0, Associativity: parser.RightAssociativity}
+		Expect(p.Normalize()).To(MatchError(parser.ErrZeroPrecedenceSet))
+	})
+
+	It("Normalize - removes non operation priorities", func() {
+		p := parser.DefaultTokenPriorities()
+
+		p[lexer.LPar] = parser.TokenMeta{Precedence: 100}
+		p[lexer.RPar] = parser.TokenMeta{Precedence: 100}
+		p[lexer.Number] = parser.TokenMeta{Precedence: 100}
+		p[lexer.Identifier] = parser.TokenMeta{Precedence: 100}
+		p[lexer.Comma] = parser.TokenMeta{Precedence: 100}
+		p[lexer.EOL] = parser.TokenMeta{Precedence: 100}
+		p[lexer.Whitespace] = parser.TokenMeta{Precedence: 100}
+
+		Expect(p).To(HaveLen(17))
+		Expect(p.Normalize()).To(Succeed())
+		Expect(p).To(HaveLen(10))
 	})
 })
 

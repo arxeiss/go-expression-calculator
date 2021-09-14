@@ -13,6 +13,8 @@ import (
 var (
 	ErrEmptyInput      = errors.New("there are no tokens to parse")
 	ErrExpectedOperand = errors.New("expected number, identifier or left parenthesis")
+	ErrExpectedEOL     = errors.New("last token is expected to be the end of input")
+	ErrUnexpectedToken = errors.New("unexpected token")
 
 	binaryOperators = []lexer.TokenType{
 		lexer.Addition, lexer.Substraction,
@@ -49,6 +51,12 @@ func (p *Parser) Parse(tokenList []*lexer.Token) (ast.Node, error) {
 			noWhiteSpaceList = append(noWhiteSpaceList, v)
 		}
 	}
+	if len(noWhiteSpaceList) == 0 {
+		return nil, parser.ParseError(nil, ErrEmptyInput)
+	}
+	if lastToken := noWhiteSpaceList[len(noWhiteSpaceList)-1]; lastToken.Type() != lexer.EOL {
+		return nil, parser.ParseError(lastToken, ErrExpectedEOL)
+	}
 	return (&parserInstance{
 		tokenList:     noWhiteSpaceList,
 		i:             0,
@@ -65,14 +73,10 @@ func (p *parserInstance) getAssociativity(tokenType lexer.TokenType) parser.Toke
 }
 
 func (p *parserInstance) parseBlock() (ast.Node, error) {
-	if len(p.tokenList) == 0 {
-		return nil, parser.ParseError(nil, ErrEmptyInput)
-	}
-
 	// Parse assignment
 	if p.hasNth(0, lexer.Identifier) && p.hasNth(1, lexer.Equal) {
-		variable, _ := p.expect(lexer.Identifier)
-		equalOp, _ := p.expect(lexer.Equal)
+		variable, _ := p.expect()
+		equalOp, _ := p.expect()
 
 		right, err := p.parseExpression(p.getPrecedence(equalOp.Type()))
 		if err != nil {
@@ -86,71 +90,82 @@ func (p *parserInstance) parseBlock() (ast.Node, error) {
 	}
 
 	node, err := p.parseExpression(p.parser.priorities.MinPrecedence())
-	if err == nil {
-		_, err = p.expect(lexer.EOL)
-	}
 	if err != nil {
 		return nil, err
+	}
+	if !p.has(lexer.EOL) {
+		return nil, parser.ParseError(p.current(), ErrUnexpectedToken)
 	}
 	return node, nil
 }
 
 func (p *parserInstance) parseExpression(currentPrecedence parser.TokenPrecedence) (ast.Node, error) {
-	// var unaryToken *lexer.Token
-	// if p.GetPrecedence(lastToken.Type()) >= p.GetPrecedence(lexer.UnaryAddition) &&
-	// 	p.has(lexer.Addition, lexer.Substraction) {
-	// 	unaryToken, _ = p.expect(lexer.Addition, lexer.Substraction)
-	// }
-
 	var leftNode ast.Node
 	var err error
+
+	// Always nest to deepest precedence as "normal recursive descent" would do by calling methods like factor and term
 	if currentPrecedence < p.maxPrecedence {
 		if leftNode, err = p.parseExpression(p.parser.priorities.NextPrecedence(currentPrecedence)); err != nil {
 			return nil, err
 		}
 	}
 
+	// If there is no node returned, we should expect either term or unary operators
 	if leftNode == nil {
-		current := p.current()
 		switch {
 		case p.has(lexer.LPar, lexer.Identifier, lexer.Number):
-			leftNode, err = p.parseTerm()
+			if leftNode, err = p.parseTerm(); err != nil {
+				return nil, err
+			}
+
+		// Unary operators are checked only if their precedence match current one
 		case p.has(lexer.Addition) && currentPrecedence == p.getPrecedence(lexer.UnaryAddition),
 			p.has(lexer.Substraction) && currentPrecedence == p.getPrecedence(lexer.UnarySubstraction):
 
-			token, _ := p.expect(lexer.Addition, lexer.Substraction)
+			token, _ := p.expect() // If p.has above pass, this cannot fail
+			current := p.current()
+			// Recurse again to match more unary or operators with higher precedence
 			leftNode, err = p.parseExpression(currentPrecedence)
-			if err == nil {
-				leftNode = ast.NewUnaryNode(tokenTypeToOperation(token.Type()), leftNode, token)
+			if err != nil {
+				return nil, err
 			}
-		}
-		if err != nil {
-			return nil, err
-		}
-		if leftNode == nil {
-			return nil, parser.ParseError(current, ErrExpectedOperand)
+			// If there is unary operator and nothing returned (not either term) it is error always
+			if leftNode == nil {
+				return nil, parser.ParseError(current, ErrExpectedOperand)
+			}
+			leftNode = ast.NewUnaryNode(tokenTypeToOperation(token.Type()), leftNode, token)
 		}
 	}
 
+	// Iterate until there are operators with same precedence
 	for p.getPrecedence(p.current().Type()) == currentPrecedence {
+		// Left part is matched, we always need to find operator now
 		current := p.current()
 		operatorToken, err := p.expect(binaryOperators...)
 		if err != nil {
 			return nil, err
 		}
+		// If there is operator, but nothing on the left side, it is always an error
+		if leftNode == nil {
+			return nil, parser.ParseError(current, ErrExpectedOperand)
+		}
 
 		var rightNode ast.Node
+		current = p.current()
 
 		// Has another opearator after operator, it must be unary
 		if p.has(lexer.Addition, lexer.Substraction) {
-			token, _ := p.expect(lexer.Addition, lexer.Substraction)
-			_ = token.ChangeToUnary()
+			token, _ := p.expect()    // If p.has above pass, this cannot fail
+			_ = token.ChangeToUnary() // Should not fail in hardcoded cases
+
+			// Recurse again to match more unary or operators with higher precedence
 			rightNode, err = p.parseExpression(p.getPrecedence(token.Type()))
 			if err != nil {
 				return nil, err
 			}
+			// If there is unary operator and nothing returned (not either term) it is error always
 			if rightNode == nil {
-				return nil, parser.ParseError(current, ErrExpectedOperand)
+				return nil, parser.ParseError(p.current(), ErrExpectedOperand)
 			}
 			rightNode = ast.NewUnaryNode(tokenTypeToOperation(token.Type()), rightNode, token)
 		} else {
@@ -165,6 +180,7 @@ func (p *parserInstance) parseExpression(currentPrecedence parser.TokenPrecedenc
 		if err != nil {
 			return nil, err
 		}
+		// If there is no part on the right side of operator, it must be error
 		if rightNode == nil {
 			return nil, parser.ParseError(current, ErrExpectedOperand)
 		}
@@ -191,7 +207,7 @@ func (p *parserInstance) parseTerm() (ast.Node, error) {
 		}
 	case lexer.Identifier:
 		if p.has(lexer.LPar) {
-			_, _ = p.expect(lexer.LPar) // Just pop out if it is function
+			_, _ = p.expect() // Just pop out if it is function
 			args := []ast.Node{}
 			for {
 				node, err = p.parseExpression(p.parser.priorities.MinPrecedence())

@@ -45,7 +45,7 @@ type variableMatcher struct {
 
 type functionMatcher struct {
 	name     interface{}
-	param    types.GomegaMatcher
+	params   []types.GomegaMatcher
 	failures []error
 }
 
@@ -83,10 +83,10 @@ func MatchVariableNode(name interface{}) types.GomegaMatcher {
 	}
 }
 
-func MatchFunctionNode(name interface{}, param types.GomegaMatcher) types.GomegaMatcher {
+func MatchFunctionNode(name interface{}, params ...types.GomegaMatcher) types.GomegaMatcher {
 	return &functionMatcher{
-		name:  name,
-		param: param,
+		name:   name,
+		params: params,
 	}
 }
 
@@ -241,7 +241,18 @@ func (matcher *functionMatcher) Match(actual interface{}) (success bool, err err
 			valMatcher = gomega.Equal(matcher.name)
 		}
 		matcher.failures = matchNode(valMatcher, node.Name(), " -> Name", matcher.failures)
-		matcher.failures = matchNode(matcher.param, node.Param(), " -> Param", matcher.failures)
+
+		params := node.Params()
+		if len(matcher.params) != len(params) {
+			matcher.failures = append(
+				matcher.failures,
+				fmt.Errorf("function expecting %d input parameters, got %d", len(matcher.params), len(params)),
+			)
+		} else {
+			for i, m := range matcher.params {
+				matcher.failures = matchNode(m, params[i], fmt.Sprintf(" -> %d. Param", i), matcher.failures)
+			}
+		}
 
 		return len(matcher.failures) == 0, nil
 	}

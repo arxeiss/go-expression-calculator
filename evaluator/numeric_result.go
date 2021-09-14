@@ -165,10 +165,14 @@ func (e *NumericEvaluator) handleFunction(n *ast.FunctionNode) (float64, error) 
 	if !has {
 		return 0, EvalError(n.GetToken(), fmt.Errorf("undefined function '%s'", n.Name()))
 	}
-	v, err := e.Eval(n.Param())
-	if err != nil {
-		return 0, err
+	args := []float64{}
+	for _, p := range n.Params() {
+		v, err := e.Eval(p)
+		if err != nil {
+			return 0, err
+		}
+		args = append(args, v)
 	}
 
-	return f.Handler(v)
+	return f.Handler(args...)
 }

@@ -314,7 +314,7 @@ var _ = DescribeTable("Handle errors",
 		lexer.NewToken(lexer.EOL, 0, "", 16, 16),
 	}, Equal(4), ContainSubstring("expected operator or right parenthesis; found Identifier token at position 4")),
 
-	FEntry("Multiple unary operators in a row",
+	Entry("Multiple unary operators in a row",
 		[]*lexer.Token{
 			lexer.NewToken(lexer.Substraction, 0, "", 0, 1),
 			lexer.NewToken(lexer.Identifier, 0, "var", 2, 5),

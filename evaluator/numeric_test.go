@@ -112,7 +112,7 @@ var _ = Describe("Evaluator", func() {
 			"myFunc": {Handler: func(x ...float64) (float64, error) { return x[0] + 2, nil }},
 		})
 		Expect(err).To(Succeed())
-		res, err := ev.Eval(ast.NewFunctionNode("myFunc", ast.NewNumericNode(7, nil), nil))
+		res, err := ev.Eval(ast.NewFunctionNode("myFunc", []ast.Node{ast.NewNumericNode(7, nil)}, nil))
 		Expect(res).To(BeEquivalentTo(9))
 		Expect(err).To(Succeed())
 	})
@@ -120,7 +120,7 @@ var _ = Describe("Evaluator", func() {
 	It("Check undefined function", func() {
 		ev, err := evaluator.NewNumericEvaluator(nil, nil)
 		Expect(err).To(Succeed())
-		_, err = ev.Eval(ast.NewFunctionNode("myFunc", ast.NewNumericNode(7, nil), nil))
+		_, err = ev.Eval(ast.NewFunctionNode("myFunc", []ast.Node{ast.NewNumericNode(7, nil)}, nil))
 		Expect(err).To(MatchError(ContainSubstring("undefined function 'myFunc'")))
 	})
 
@@ -138,20 +138,24 @@ var _ = Describe("Evaluator", func() {
 			ast.Addition,
 			ast.NewUnaryNode(ast.Substraction, ast.NewFunctionNode(
 				"AddTwo",
-				ast.NewBinaryNode(ast.Modulus, ast.NewNumericNode(1246.67, nil), ast.NewVariableNode("Y", nil), nil),
+				[]ast.Node{
+					ast.NewBinaryNode(ast.Modulus, ast.NewNumericNode(1246.67, nil), ast.NewVariableNode("Y", nil), nil),
+				},
 				nil,
 			), nil),
 			ast.NewBinaryNode(
 				ast.Multiplication,
-				ast.NewFunctionNode("Abs", ast.NewBinaryNode(
+				ast.NewFunctionNode("Abs", []ast.Node{ast.NewBinaryNode(
 					ast.Substraction,
 					ast.NewNumericNode(5, nil),
 					ast.NewVariableNode("X", nil),
 					nil,
-				), nil),
+				)}, nil),
 				ast.NewFunctionNode(
 					"Ceil",
-					ast.NewBinaryNode(ast.Exponent, ast.NewNumericNode(2.2, nil), ast.NewVariableNode("Z", nil), nil),
+					[]ast.Node{
+						ast.NewBinaryNode(ast.Exponent, ast.NewNumericNode(2.2, nil), ast.NewVariableNode("Z", nil), nil),
+					},
 					nil,
 				),
 				nil,

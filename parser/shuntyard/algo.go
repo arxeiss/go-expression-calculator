@@ -326,7 +326,7 @@ func (p *Parser) addToOutput(output []ast.Node, token *lexer.Token) ([]ast.Node,
 		if len(output) < 1 {
 			return nil, errors.New("internal error, missing value for function")
 		}
-		output[len(output)-1] = ast.NewFunctionNode(token.Identifier(), output[len(output)-1], token)
+		output[len(output)-1] = ast.NewFunctionNode(token.Identifier(), []ast.Node{output[len(output)-1]}, token)
 	default:
 		return nil, fmt.Errorf("unexpected token '%s' received to add to output", t.String())
 	}

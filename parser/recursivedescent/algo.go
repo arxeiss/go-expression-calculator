@@ -74,22 +74,20 @@ func (p *parserInstance) getAssociativity(tokenType lexer.TokenType) parser.Toke
 
 func (p *parserInstance) parseBlock() (ast.Node, error) {
 	// Parse assignment
+	var node ast.Node
+	var err error
+
 	if p.hasNth(0, lexer.Identifier) && p.hasNth(1, lexer.Equal) {
 		variable, _ := p.expect()
 		equalOp, _ := p.expect()
 
-		right, err := p.parseExpression(p.getPrecedence(equalOp.Type()))
-		if err != nil {
-			return nil, err
+		node, err = p.parseExpression(p.getPrecedence(equalOp.Type()))
+		if err == nil {
+			node = ast.NewAssignNode(ast.NewVariableNode(variable.Identifier(), variable), node, equalOp)
 		}
-		if _, err := p.expect(lexer.EOL); err != nil {
-			return nil, err
-		}
-
-		return ast.NewAssignNode(ast.NewVariableNode(variable.Identifier(), variable), right, equalOp), nil
+	} else {
+		node, err = p.parseExpression(p.parser.priorities.MinPrecedence())
 	}
-
-	node, err := p.parseExpression(p.parser.priorities.MinPrecedence())
 	if err != nil {
 		return nil, err
 	}
@@ -214,16 +212,19 @@ func (p *parserInstance) parseTerm() (ast.Node, error) {
 				if err != nil {
 					return nil, err
 				}
+				if node == nil {
+					break
+				}
 				args = append(args, node)
 				if !p.has(lexer.Comma) {
 					break
 				}
-				_, _ = p.expect(lexer.Comma)
+				_, _ = p.expect()
 			}
 			if _, err := p.expect(lexer.RPar); err != nil {
 				return nil, err
 			}
-			node = ast.NewFunctionNode(token.Identifier(), args[0], token)
+			node = ast.NewFunctionNode(token.Identifier(), args, token)
 		} else {
 			node = ast.NewVariableNode(token.Identifier(), token)
 		}

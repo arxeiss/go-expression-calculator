@@ -161,28 +161,30 @@ func (n *AssignNode) GetToken() *lexer.Token {
 }
 
 type FunctionNode struct {
-	name  string
-	param Node
-	token *lexer.Token
+	name   string
+	params []Node
+	token  *lexer.Token
 }
 
-func NewFunctionNode(name string, param Node, token *lexer.Token) *FunctionNode {
+func NewFunctionNode(name string, params []Node, token *lexer.Token) *FunctionNode {
 	return &FunctionNode{
-		name:  name,
-		param: param,
-		token: token,
+		name:   name,
+		params: params,
+		token:  token,
 	}
 }
 
-func (n *FunctionNode) Param() Node {
-	return n.param
+func (n *FunctionNode) Params() []Node {
+	return n.params
 }
 func (n *FunctionNode) Name() string {
 	return n.name
 }
 func (n *FunctionNode) toTreeDrawer(t *tree.Tree) {
 	t.SetVal(tree.NodeString(n.name + "()"))
-	n.param.toTreeDrawer(t.AddChild(nil))
+	for _, v := range n.params {
+		v.toTreeDrawer(t.AddChild(nil))
+	}
 }
 func (n *FunctionNode) GetToken() *lexer.Token {
 	return n.token

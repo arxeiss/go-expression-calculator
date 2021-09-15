@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/c-bata/go-prompt"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 
@@ -61,6 +62,24 @@ var rootCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+
+		pp := prompt.New(func(s string) {}, func(d prompt.Document) []prompt.Suggest { return []prompt.Suggest{} })
+		for {
+			c := pp.Input()
+			fmt.Println("Here comes the c:", c)
+
+		}
+
+		// c := prompt.Input(">>>", func(d prompt.Document) []prompt.Suggest {
+		// 	s := []prompt.Suggest{
+		// 		{Text: "users", Description: "Store the username and age"},
+		// 		{Text: "articles", Description: "Store the article text posted by user"},
+		// 		{Text: "comments", Description: "Store the text commented to articles"},
+		// 	}
+		// 	return prompt.FilterHasPrefix(s, d.GetWordBeforeCursor(), true)
+		// })
+
+		// fmt.Println("Here comes the c:", c)
 
 		fmt.Printf("Welcome to the expression calculator, write '%s' to get more info\n", color.HiCyanString("help"))
 		reader := bufio.NewReader(os.Stdin)

@@ -15,7 +15,6 @@ import (
 )
 
 var _ = Describe("Successful parsing", func() {
-	// TODO add functions with multiple args and equal operator
 	It("All supported token types", func() {
 		p, err := recursivedescent.NewParser(parser.DefaultTokenPriorities())
 		Expect(err).To(Succeed())
@@ -37,8 +36,10 @@ var _ = Describe("Successful parsing", func() {
 			/* 2 */ lexer.NewToken(lexer.Number, 2, "", 0, 0),
 			/* + */ lexer.NewToken(lexer.Addition, 0, "", 0, 0),
 			/* - */ lexer.NewToken(lexer.Substraction, 0, "", 0, 0), // Will be changed to unary
-			/* sin */ lexer.NewToken(lexer.Identifier, 0, "sin", 0, 0),
+			/* max */ lexer.NewToken(lexer.Identifier, 0, "max", 0, 0),
 			/* ( */ lexer.NewToken(lexer.LPar, 0, "", 0, 0),
+			/* 5 */ lexer.NewToken(lexer.Number, 5, "", 0, 0),
+			/* , */ lexer.NewToken(lexer.Comma, 0, "", 0, 0),
 			/* 17 */ lexer.NewToken(lexer.Number, 17, "", 0, 0),
 			/* % */ lexer.NewToken(lexer.Modulus, 0, "", 0, 0),
 			/* 7 */ lexer.NewToken(lexer.Number, 7, "", 0, 0),
@@ -77,7 +78,8 @@ var _ = Describe("Successful parsing", func() {
 				),
 				MatchUnaryNode(
 					ast.Substraction,
-					MatchFunctionNode("sin",
+					MatchFunctionNode("max",
+						MatchNumericNode(5),
 						MatchBinaryNode(
 							ast.Modulus,
 							MatchNumericNode(17),
@@ -326,7 +328,168 @@ var _ = Describe("Successful parsing", func() {
 		))
 	})
 
-	// TODO: test assignment, function with multiple params
+	It("Support assign only number", func() {
+		p, err := recursivedescent.NewParser(parser.DefaultTokenPriorities())
+		Expect(err).To(Succeed())
+		input := []*lexer.Token{
+			lexer.NewToken(lexer.Identifier, 0, "a", 0, 0),
+			lexer.NewToken(lexer.Equal, 0, "", 0, 0),
+			lexer.NewToken(lexer.Number, 46, "", 0, 0),
+			lexer.NewToken(lexer.EOL, 0, "", 0, 0),
+		}
+		rootNode, err := p.Parse(input)
+		Expect(err).To(Succeed())
+		Expect(rootNode).NotTo(BeNil())
+
+		Expect(rootNode).To(MatchAssignNode(
+			MatchVariableNode("a"),
+			MatchNumericNode(46),
+		))
+	})
+
+	It("Support assign value of another variable", func() {
+		p, err := recursivedescent.NewParser(parser.DefaultTokenPriorities())
+		Expect(err).To(Succeed())
+		input := []*lexer.Token{
+			lexer.NewToken(lexer.Identifier, 0, "a", 0, 0),
+			lexer.NewToken(lexer.Equal, 0, "", 0, 0),
+			lexer.NewToken(lexer.Identifier, 0, "b", 0, 0),
+			lexer.NewToken(lexer.EOL, 0, "", 0, 0),
+		}
+		rootNode, err := p.Parse(input)
+		Expect(err).To(Succeed())
+		Expect(rootNode).NotTo(BeNil())
+
+		Expect(rootNode).To(MatchAssignNode(
+			MatchVariableNode("a"),
+			MatchVariableNode("b"),
+		))
+	})
+
+	It("Support functions without arguments", func() {
+		p, err := recursivedescent.NewParser(parser.DefaultTokenPriorities())
+		Expect(err).To(Succeed())
+		input := []*lexer.Token{
+			lexer.NewToken(lexer.Identifier, 0, "rand", 0, 0),
+			lexer.NewToken(lexer.LPar, 0, "", 0, 0),
+			lexer.NewToken(lexer.RPar, 46, "", 0, 0),
+			lexer.NewToken(lexer.EOL, 0, "", 0, 0),
+		}
+		rootNode, err := p.Parse(input)
+		Expect(err).To(Succeed())
+		Expect(rootNode).NotTo(BeNil())
+
+		Expect(rootNode).To(MatchFunctionNode("rand"))
+	})
+
+	It("Support functions with multiple arguments", func() {
+		p, err := recursivedescent.NewParser(parser.DefaultTokenPriorities())
+		Expect(err).To(Succeed())
+		input := []*lexer.Token{
+			// max(a, 123, b, -55---31^2)
+			lexer.NewToken(lexer.Identifier, 0, "max", 0, 0),
+			lexer.NewToken(lexer.LPar, 0, "", 0, 0),
+			lexer.NewToken(lexer.Identifier, 0, "a", 0, 0),
+			lexer.NewToken(lexer.Comma, 0, "", 0, 0),
+			lexer.NewToken(lexer.Number, 123, "", 0, 0),
+			lexer.NewToken(lexer.Comma, 0, "", 0, 0),
+			lexer.NewToken(lexer.Identifier, 0, "b", 0, 0),
+			lexer.NewToken(lexer.Comma, 0, "", 0, 0),
+			lexer.NewToken(lexer.Substraction, 0, "", 0, 0),
+			lexer.NewToken(lexer.Number, 55, "", 0, 0),
+			lexer.NewToken(lexer.Substraction, 0, "", 0, 0),
+			lexer.NewToken(lexer.Substraction, 0, "", 0, 0),
+			lexer.NewToken(lexer.Substraction, 0, "", 0, 0),
+			lexer.NewToken(lexer.Number, 31, "", 0, 0),
+			lexer.NewToken(lexer.Exponent, 0, "", 0, 0),
+			lexer.NewToken(lexer.Number, 2, "", 0, 0),
+			lexer.NewToken(lexer.RPar, 0, "", 0, 0),
+			lexer.NewToken(lexer.EOL, 0, "", 0, 0),
+		}
+		rootNode, err := p.Parse(input)
+		Expect(err).To(Succeed())
+		Expect(rootNode).NotTo(BeNil())
+
+		Expect(rootNode).To(MatchFunctionNode(
+			"max",
+			MatchVariableNode("a"),
+			MatchNumericNode(123),
+			MatchVariableNode("b"),
+			MatchBinaryNode(
+				ast.Substraction,
+				MatchUnaryNode(ast.Substraction, MatchNumericNode(55)),
+				MatchUnaryNode(
+					ast.Substraction,
+					MatchUnaryNode(
+						ast.Substraction,
+						MatchBinaryNode(
+							ast.Exponent,
+							MatchNumericNode(31),
+							MatchNumericNode(2),
+						),
+					),
+				),
+			),
+		))
+	})
+
+	It("Support functions inside functions", func() {
+		p, err := recursivedescent.NewParser(parser.DefaultTokenPriorities())
+		Expect(err).To(Succeed())
+		input := []*lexer.Token{
+			/* c */ lexer.NewToken(lexer.Identifier, 0, "c", 0, 0),
+			/* = */ lexer.NewToken(lexer.Equal, 0, "", 0, 0),
+			/* min */ lexer.NewToken(lexer.Identifier, 0, "min", 0, 0),
+			/* ( */ lexer.NewToken(lexer.LPar, 0, "", 0, 0),
+			/* sin */ lexer.NewToken(lexer.Identifier, 0, "sin", 0, 0),
+			/* ( */ lexer.NewToken(lexer.LPar, 0, "", 0, 0),
+			/* 4 */ lexer.NewToken(lexer.Number, 4, "", 0, 0),
+			/* * */ lexer.NewToken(lexer.Multiplication, 0, "", 0, 0),
+			/* 7 */ lexer.NewToken(lexer.Number, 7, "", 0, 0),
+			/* ) */ lexer.NewToken(lexer.RPar, 0, "", 0, 0),
+			/* , */ lexer.NewToken(lexer.Comma, 0, "", 0, 0),
+			/* cos */ lexer.NewToken(lexer.Identifier, 0, "cos", 0, 0),
+			/* ( */ lexer.NewToken(lexer.LPar, 0, "", 0, 0),
+			/* max */ lexer.NewToken(lexer.Identifier, 0, "max", 0, 0),
+			/* ( */ lexer.NewToken(lexer.LPar, 0, "", 0, 0),
+			/* a */ lexer.NewToken(lexer.Identifier, 0, "a", 0, 0),
+			/* , */ lexer.NewToken(lexer.Comma, 0, "", 0, 0),
+			/* sqrt */ lexer.NewToken(lexer.Identifier, 0, "sqrt", 0, 0),
+			/* ( */ lexer.NewToken(lexer.LPar, 0, "", 0, 0),
+			/* 18 */ lexer.NewToken(lexer.Number, 18, "", 0, 0),
+			/* ) */ lexer.NewToken(lexer.RPar, 0, "", 0, 0),
+			/* , */ lexer.NewToken(lexer.Comma, 0, "", 0, 0),
+			/* sqrt */ lexer.NewToken(lexer.Identifier, 0, "sqrt", 0, 0),
+			/* ( */ lexer.NewToken(lexer.LPar, 0, "", 0, 0),
+			/* 25 */ lexer.NewToken(lexer.Number, 25, "", 0, 0),
+			/* ) */ lexer.NewToken(lexer.RPar, 0, "", 0, 0),
+			/* , */ lexer.NewToken(lexer.Comma, 0, "", 0, 0),
+			/* c */ lexer.NewToken(lexer.Identifier, 0, "c", 0, 0),
+			/* ) */ lexer.NewToken(lexer.RPar, 0, "", 0, 0),
+			/* ) */ lexer.NewToken(lexer.RPar, 0, "", 0, 0),
+			/* ) */ lexer.NewToken(lexer.RPar, 0, "", 0, 0),
+			lexer.NewToken(lexer.EOL, 0, "", 0, 0),
+		}
+
+		rootNode, err := p.Parse(input)
+		Expect(err).To(Succeed())
+		Expect(rootNode).NotTo(BeNil())
+
+		Expect(rootNode).To(MatchAssignNode(
+			MatchVariableNode("c"),
+			MatchFunctionNode(
+				"min",
+				MatchFunctionNode("sin", MatchBinaryNode(ast.Multiplication, MatchNumericNode(4), MatchNumericNode(7))),
+				MatchFunctionNode("cos", MatchFunctionNode(
+					"max",
+					MatchVariableNode("a"),
+					MatchFunctionNode("sqrt", MatchNumericNode(18)),
+					MatchFunctionNode("sqrt", MatchNumericNode(25)),
+					MatchVariableNode("c"),
+				)),
+			),
+		))
+	})
 })
 
 var _ = DescribeTable("Handle errors",
@@ -401,15 +564,30 @@ var _ = DescribeTable("Handle errors",
 		Equal(4),
 		ContainSubstring("expected number, identifier or left parenthesis; found EOL token at position 4"),
 	),
-	Entry("Equal to number is not valid",
+	Entry("Assign to number is not valid",
 		[]*lexer.Token{
 			lexer.NewToken(lexer.Number, 20, "", 0, 2),
 			lexer.NewToken(lexer.Addition, 0, "", 2, 3),
 			lexer.NewToken(lexer.Number, 77, "", 3, 5),
 			lexer.NewToken(lexer.Equal, 0, "", 5, 6),
+			lexer.NewToken(lexer.Number, 99, "", 3, 5),
 			lexer.NewToken(lexer.EOL, 0, "", 6, 6),
 		},
 		Equal(5),
+		ContainSubstring("expected one of ['Addition', 'Substraction', 'Multiplication', 'Division', 'FloorDiv', 'Modulus', 'Exponent'] types, got 'Equal'"), //nolint:lll
+	),
+	Entry("Assign to variable inside expression is not valid",
+		[]*lexer.Token{
+			lexer.NewToken(lexer.Number, 20, "", 0, 2),
+			lexer.NewToken(lexer.Addition, 0, "", 2, 3),
+			lexer.NewToken(lexer.LPar, 0, "", 3, 4),
+			lexer.NewToken(lexer.Identifier, 0, "abc", 4, 7),
+			lexer.NewToken(lexer.Equal, 0, "", 7, 8),
+			lexer.NewToken(lexer.Number, 99, "", 8, 10),
+			lexer.NewToken(lexer.RPar, 0, "", 10, 11),
+			lexer.NewToken(lexer.EOL, 0, "", 11, 11),
+		},
+		Equal(7),
 		ContainSubstring("expected one of ['Addition', 'Substraction', 'Multiplication', 'Division', 'FloorDiv', 'Modulus', 'Exponent'] types, got 'Equal'"), //nolint:lll
 	),
 	Entry("Unexpected operator after another operator - not unary",

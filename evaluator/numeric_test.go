@@ -139,7 +139,12 @@ var _ = Describe("Evaluator", func() {
 			ast.NewUnaryNode(ast.Substraction, ast.NewFunctionNode(
 				"AddTwo",
 				[]ast.Node{
-					ast.NewBinaryNode(ast.Modulus, ast.NewNumericNode(1246.67, nil), ast.NewVariableNode("Y", nil), nil),
+					ast.NewBinaryNode(
+						ast.Modulus,
+						ast.NewNumericNode(1246.67, nil),
+						ast.NewVariableNode("Y", nil),
+						nil,
+					),
 				},
 				nil,
 			), nil),
@@ -154,7 +159,12 @@ var _ = Describe("Evaluator", func() {
 				ast.NewFunctionNode(
 					"Ceil",
 					[]ast.Node{
-						ast.NewBinaryNode(ast.Exponent, ast.NewNumericNode(2.2, nil), ast.NewVariableNode("Z", nil), nil),
+						ast.NewBinaryNode(
+							ast.Exponent,
+							ast.NewNumericNode(2.2, nil),
+							ast.NewVariableNode("Z", nil),
+							nil,
+						),
 					},
 					nil,
 				),

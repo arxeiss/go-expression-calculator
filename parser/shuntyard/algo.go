@@ -77,9 +77,6 @@ tokenLoop:
 		curToken := tokenList[i]
 
 		switch curToken.Type() {
-		case lexer.Whitespace:
-			continue
-
 		case lexer.Number:
 			expect, output, err = p.handleNumber(expect, curToken, output)
 

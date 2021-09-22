@@ -506,6 +506,10 @@ var _ = DescribeTable("Handle errors",
 		Expect(parseErr.Error()).To(errMatcher)
 	},
 	Entry("Empty token list", []*lexer.Token{}, Equal(-1), ContainSubstring(recursivedescent.ErrEmptyInput.Error())),
+	Entry("Empty token list", []*lexer.Token{
+		lexer.NewToken(lexer.EOL, 0, "", 0, 0),
+	}, Equal(0), ContainSubstring(recursivedescent.ErrEmptyInput.Error())),
+
 	Entry("Not EOL at the end", []*lexer.Token{
 		lexer.NewToken(lexer.Identifier, 0, "abc", 0, 3),
 	}, Equal(0), ContainSubstring(recursivedescent.ErrExpectedEOL.Error())),

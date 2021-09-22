@@ -57,12 +57,17 @@ func (p *Parser) Parse(tokenList []*lexer.Token) (ast.Node, error) {
 	if lastToken := noWhiteSpaceList[len(noWhiteSpaceList)-1]; lastToken.Type() != lexer.EOL {
 		return nil, parser.ParseError(lastToken, ErrExpectedEOL)
 	}
-	return (&parserInstance{
+	n, err := (&parserInstance{
 		tokenList:     noWhiteSpaceList,
 		i:             0,
 		parser:        p,
 		maxPrecedence: p.priorities.MaxPrecedence(),
 	}).parseBlock()
+
+	if err == nil && n == nil {
+		return nil, parser.ParseError(noWhiteSpaceList[0], ErrEmptyInput)
+	}
+	return n, err
 }
 
 func (p *parserInstance) getPrecedence(tokenType lexer.TokenType) parser.TokenPrecedence {

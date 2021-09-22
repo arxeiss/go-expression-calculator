@@ -8,7 +8,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/arxeiss/go-expression-calculator/evaluator"
 	"github.com/fatih/color"
+	"github.com/olekukonko/tablewriter"
 )
 
 var (
@@ -75,4 +77,69 @@ func initVariables(flagInitVars bool) (map[string]float64, error) {
 	}
 
 	return vars, nil
+}
+
+func prettyPrintVariables(vars []evaluator.VariableTuple) {
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader([]string{"Name", "Value"})
+	table.SetAutoWrapText(false)
+	table.SetAlignment(tablewriter.ALIGN_RIGHT)
+
+	for _, v := range vars {
+		table.Append([]string{
+			color.HiBlueString(v.Name),
+			fmt.Sprintf("%.8f", v.Value),
+		})
+	}
+
+	fmt.Println(color.GreenString("All variables:"))
+	table.Render()
+}
+
+func prettyPrintFunctions(funcs []evaluator.FunctionTuple) {
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader([]string{"Name", "Description"})
+	table.SetAutoWrapText(false)
+	table.SetColumnAlignment([]int{tablewriter.ALIGN_RIGHT, tablewriter.ALIGN_LEFT})
+
+	for _, v := range funcs {
+		table.Append([]string{
+			color.HiBlueString(v.Name) + "(" + formatFuncArgs(v.Function) + ")",
+			v.Function.Description,
+		})
+	}
+
+	fmt.Println(color.GreenString("All variables:"))
+	table.Render()
+}
+
+func formatFuncArgs(v evaluator.FunctionHandler) string {
+	p := ""
+
+	i := 0
+	for ; i < len(v.ArgsNames); i++ {
+		if i >= v.MinArguments {
+			break
+		}
+		p += color.HiGreenString(v.ArgsNames[i])
+		if i < v.MinArguments-1 || v.MaxArguments == 0 {
+			p += color.HiBlackString(", ")
+		}
+	}
+
+	if v.MinArguments > 0 && v.MaxArguments == 0 {
+		p += color.HiGreenString(v.ArgsNames[i]) + color.HiRedString("...")
+	} else {
+		varP := ""
+		for b := len(v.ArgsNames) - 1; b >= i; b-- {
+			inn := color.HiBlackString("[")
+			if b > i || len(p) > 0 {
+				inn += color.HiBlackString(", ")
+			}
+			varP = inn + color.HiGreenString(v.ArgsNames[i]) + varP + color.HiBlackString("]")
+		}
+		p += varP
+	}
+
+	return p
 }

@@ -1,10 +1,8 @@
 package cmd
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/c-bata/go-prompt"
@@ -13,6 +11,7 @@ import (
 
 	"github.com/arxeiss/go-expression-calculator/evaluator"
 	"github.com/arxeiss/go-expression-calculator/parser"
+	"github.com/arxeiss/go-expression-calculator/parser/recursivedescent"
 	"github.com/arxeiss/go-expression-calculator/parser/shuntyard"
 )
 
@@ -26,7 +25,7 @@ var (
 
 func init() {
 	flagInitVars = rootCmd.Flags().BoolP("init-vars", "i", false, "Before start, initialize values")
-	flagParser = rootCmd.Flags().StringP("parser", "p", "shunt-yard", fmt.Sprintf(
+	flagParser = rootCmd.Flags().StringP("parser", "p", "recursive", fmt.Sprintf(
 		"Parser to be used, available ones are: '"+strings.Join(availableParsers, "', '")+"'",
 	))
 	flagNoFuncs = rootCmd.Flags().Bool("no-functions", false, "Disable functions for parser")
@@ -50,85 +49,92 @@ var rootCmd = &cobra.Command{
 			return err
 		}
 
-		var funcs map[string]evaluator.FunctionHandler
+		var funcs []map[string]evaluator.FunctionHandler
 		if !*flagNoFuncs {
-			funcs = evaluator.MathFunctions()
+			funcs = append(funcs, evaluator.MathFunctions())
 		}
-		numEvaluator, err := evaluator.NewNumericEvaluator(vars, funcs)
+
+		parserName := "Recursive descent"
+		var p parser.Parser
+		switch *flagParser {
+		case "shunt-yard":
+			p, err = shuntyard.NewParser(parser.DefaultTokenPriorities())
+			parserName = "Shunting Yard"
+		default:
+			p, err = recursivedescent.NewParser(parser.DefaultTokenPriorities())
+			if !*flagNoFuncs {
+				funcs = append(funcs, evaluator.MathFunctionsWithVarArgs())
+			}
+		}
 		if err != nil {
 			return err
 		}
-		p, err := shuntyard.NewParser(parser.DefaultTokenPriorities())
+
+		numEvaluator, err := evaluator.NewNumericEvaluator(vars, funcs...)
 		if err != nil {
 			return err
 		}
-
-		pp := prompt.New(func(s string) {}, func(d prompt.Document) []prompt.Suggest { return []prompt.Suggest{} })
-		for {
-			c := pp.Input()
-			fmt.Println("Here comes the c:", c)
-
-		}
-
-		// c := prompt.Input(">>>", func(d prompt.Document) []prompt.Suggest {
-		// 	s := []prompt.Suggest{
-		// 		{Text: "users", Description: "Store the username and age"},
-		// 		{Text: "articles", Description: "Store the article text posted by user"},
-		// 		{Text: "comments", Description: "Store the text commented to articles"},
-		// 	}
-		// 	return prompt.FilterHasPrefix(s, d.GetWordBeforeCursor(), true)
-		// })
-
-		// fmt.Println("Here comes the c:", c)
 
 		fmt.Printf("Welcome to the expression calculator, write '%s' to get more info\n", color.HiCyanString("help"))
-		reader := bufio.NewReader(os.Stdin)
-		for {
-			fmt.Print(color.HiBlackString(">>> "))
-			expr, err := reader.ReadString('\n')
-			if err != nil {
-				return err
-			}
-			expr = strings.TrimSpace(expr)
-			switch expr {
-			case "exit":
-				fmt.Println(color.HiMagentaString("All done, good bye!"))
-				return nil
-			case "help":
-				fmt.Printf(
-					"%s\n   %s - %s\n   %s - %s\n   %s - %s\n   %s - %s\n   %s - %s\n",
-					"Write directly any expression to evaluate, or one of those commands:",
-					color.HiYellowString("functions  "), "Show all available functions",
-					color.HiYellowString("variables  "), "Prints all variables with values",
-					color.HiYellowString("help       "), "Show this help",
-					color.HiYellowString("tree {expr}"), "Write tree and then expression to print AST tree",
-					color.HiYellowString("exit       "), "Quit this REPL",
-				)
-				continue
-			case "func", "funcs", "functions":
-				funcs := numEvaluator.FunctionList()
-				if len(funcs) == 0 {
-					fmt.Println(color.YellowString("There are no defined functions"))
-					continue
+		fmt.Printf("Current parser is '%s'\n", color.HiGreenString(parserName))
+
+		controlC := false
+		emptyLine := true
+		promptParser := prompt.NewStandardInputParser()
+
+		pp := prompt.New(
+			func(s string) {
+				controlC = false
+				if s != "" && s != "exit" {
+					parseLine(s, numEvaluator, p)
 				}
-				fmt.Println(color.GreenString("All functions:"))
-				for _, f := range funcs {
-					fmt.Printf("%s: %s\n", color.HiBlueString(f.Name), f.Description)
+			},
+			func(d prompt.Document) []prompt.Suggest {
+				if d.CursorPositionCol() == 0 && d.LastKeyStroke() == prompt.Escape {
+					return []prompt.Suggest{}
 				}
-			case "vars", "variables":
-				vars := numEvaluator.VariableList()
-				if len(vars) == 0 {
-					fmt.Println(color.YellowString("There are no variables now"))
-					continue
+				s := []prompt.Suggest{
+					{Text: "help", Description: "Open this help"},
+					{Text: "functions", Description: "Show all available functions"},
+					{Text: "variables", Description: "Show all available variables"},
+					{Text: "tree", Description: "Prints AST tree"},
+					{Text: "exit", Description: "Quits console"},
 				}
-				fmt.Println(color.GreenString("All variables:"))
-				for _, f := range vars {
-					fmt.Printf("%s: %f\n", color.HiBlueString(f.Name), f.Value)
+				return prompt.FilterHasPrefix(s, d.Text, true)
+			},
+			prompt.OptionParser(promptParser),
+			prompt.OptionAddKeyBind(prompt.KeyBind{
+				Key: prompt.ControlC,
+				Fn: func(b *prompt.Buffer) {
+					controlC = true
+				},
+			}),
+			prompt.OptionSetExitCheckerOnInput(func(in string, breakline bool) bool {
+				if controlC && len(in) == 0 && emptyLine {
+					fmt.Println("Received interrupt signal")
+					return true
 				}
-			default:
-				parseExpression(numEvaluator, p, expr)
-			}
-		}
+				if breakline && in == "exit" {
+					return true
+				}
+				emptyLine = breakline || len(in) == 0
+				return false
+			}),
+			prompt.OptionPrefix(">>> "),
+			prompt.OptionTitle("Expression calculator"),
+			prompt.OptionSuggestionTextColor(prompt.Turquoise),
+			prompt.OptionSuggestionBGColor(prompt.Black),
+			prompt.OptionSelectedSuggestionTextColor(prompt.Turquoise),
+			prompt.OptionSelectedSuggestionBGColor(prompt.DarkGray),
+			prompt.OptionDescriptionTextColor(prompt.Turquoise),
+			prompt.OptionDescriptionBGColor(prompt.Black),
+			prompt.OptionSelectedDescriptionTextColor(prompt.Turquoise),
+			prompt.OptionSelectedDescriptionBGColor(prompt.DarkGray),
+		)
+		pp.Run()
+		fmt.Println(color.HiMagentaString("All done, good bye!"))
+
+		return promptParser.TearDown()
 	},
 }
 

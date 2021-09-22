@@ -8,9 +8,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/arxeiss/go-expression-calculator/evaluator"
 	"github.com/fatih/color"
 	"github.com/olekukonko/tablewriter"
+
+	"github.com/arxeiss/go-expression-calculator/evaluator"
 )
 
 var (

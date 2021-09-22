@@ -134,7 +134,7 @@ func MathFunctionsWithVarArgs() map[string]FunctionHandler {
 		"rand_f": {
 			Description: "Returns random float number in range <0;1).",
 			Handler: func(x ...float64) (float64, error) {
-				return rand.Float64(), nil
+				return rand.Float64(), nil // #nosec G404
 			},
 			MinArguments: 0, MaxArguments: 0,
 		},
@@ -149,7 +149,7 @@ func MathFunctionsWithVarArgs() map[string]FunctionHandler {
 				if min >= max {
 					return 0, fmt.Errorf("number %d (min) cannot be higher or equal to %d (max)", min, max)
 				}
-				return float64(rand.Int63n(max-min) + min), nil
+				return float64(rand.Int63n(max-min) + min), nil // #nosec G404
 			},
 			MinArguments: 1, MaxArguments: 2,
 			ArgsNames: []string{"a", "b"},

@@ -84,6 +84,16 @@ var _ = Describe("Functions", func() {
 			{value: []float64{math.Pi}, resultMatcher: BeEquivalentTo(0)},
 			{value: []float64{math.Pi * 0.25}, resultMatcher: BeEquivalentTo(1)},
 		}),
+		Entry("deg2rad", "deg2rad", ContainSubstring("Convert x from degrees into radians."), []funcArg{
+			{value: []float64{0}, resultMatcher: BeNumerically("~", 0), errMatcher: Succeed()},
+			{value: []float64{180}, resultMatcher: BeNumerically("~", math.Pi), errMatcher: Succeed()},
+			{value: []float64{30}, resultMatcher: BeNumerically("~", math.Pi/6), errMatcher: Succeed()},
+		}),
+		Entry("rad2deg", "rad2deg", ContainSubstring("Convert x from radians into degrees."), []funcArg{
+			{value: []float64{0}, resultMatcher: BeEquivalentTo(0), errMatcher: Succeed()},
+			{value: []float64{math.Pi}, resultMatcher: BeEquivalentTo(180), errMatcher: Succeed()},
+			{value: []float64{math.Pi / 4}, resultMatcher: BeEquivalentTo(45), errMatcher: Succeed()},
+		}),
 	)
 
 	DescribeTable("Math Functions with VarArgs",

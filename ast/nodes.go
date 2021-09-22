@@ -152,7 +152,7 @@ func (n *AssignNode) Right() Node {
 	return n.right
 }
 func (n *AssignNode) toTreeDrawer(t *tree.Tree) {
-	t.SetVal(tree.NodeString(lexer.Equal))
+	t.SetVal(tree.NodeString(Assign.String()))
 	n.left.toTreeDrawer(t.AddChild(nil))
 	n.right.toTreeDrawer(t.AddChild(nil))
 }

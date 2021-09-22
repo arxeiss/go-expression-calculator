@@ -1,7 +1,7 @@
 package ast
 
 var (
-	operationsStr = []string{"Invalid", "+", "-", "*", "/", "^", "//", "%"}
+	operationsStr = []string{"Invalid", "+", "-", "*", "/", "^", "//", "%", "="}
 )
 
 type Operation uint8
@@ -17,6 +17,7 @@ const (
 	Exponent
 	FloorDiv
 	Modulus
+	Assign
 )
 
 func (o Operation) String() string {

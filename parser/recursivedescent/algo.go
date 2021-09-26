@@ -103,25 +103,25 @@ func (p *parserInstance) parseBlock() (ast.Node, error) {
 }
 
 func (p *parserInstance) parseExpression(currentPrecedence parser.TokenPrecedence) (ast.Node, error) {
-	var leftNode ast.Node
+	var node ast.Node
 	var err error
 
 	// Always nest to deepest precedence as "normal recursive descent" would do by calling methods like factor and term
 	if currentPrecedence < p.maxPrecedence {
-		if leftNode, err = p.parseExpression(p.parser.priorities.NextPrecedence(currentPrecedence)); err != nil {
+		if node, err = p.parseExpression(p.parser.priorities.NextPrecedence(currentPrecedence)); err != nil {
 			return nil, err
 		}
 	}
 
 	// If there is no node returned, we should expect either term or unary operators
-	if leftNode == nil {
+	if node == nil {
 		switch {
 		case p.has(lexer.LPar, lexer.Identifier, lexer.Number):
-			leftNode, err = p.parseTerm()
+			node, err = p.parseTerm()
 		// Unary operators are checked only if their precedence match current one
 		case p.has(lexer.Addition) && currentPrecedence == p.getPrecedence(lexer.UnaryAddition),
 			p.has(lexer.Substraction) && currentPrecedence == p.getPrecedence(lexer.UnarySubstraction):
-			leftNode, err = p.handleUnary()
+			node, err = p.handleUnary()
 		}
 	}
 	if err != nil {
@@ -130,13 +130,13 @@ func (p *parserInstance) parseExpression(currentPrecedence parser.TokenPrecedenc
 
 	// Iterate until there are operators with same precedence
 	for p.getPrecedence(p.current().Type()) == currentPrecedence {
-		leftNode, err = p.handleSamePrecedenceTokens(currentPrecedence, leftNode)
+		node, err = p.handleSamePrecedenceTokens(currentPrecedence, node)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	return leftNode, err
+	return node, err
 }
 
 func (p *parserInstance) handleSamePrecedenceTokens(

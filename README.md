@@ -10,7 +10,7 @@ The idea to try implement custom expression calculator raised from the puzzle of
 1. Build calculator with `make build`
 1. Execute calculator with `./calculator` and show help with `./calculator --help`
 
-## Dev.to articles
+## Blog posts
 
 About each part I'm also writing article on Dev.to and my personal blog.
 

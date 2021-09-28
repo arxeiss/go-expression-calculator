@@ -19,21 +19,43 @@ const (
 var (
 	ErrEmptyInput       = errors.New("there are no tokens to parse")
 	ErrExpectedOperand  = errors.New("expected number, identifier or left parenthesis")
-	ErrMultipleUnary    = errors.New("too many unary operators in a row")
 	ErrExpectedOperator = errors.New("expected operator or right parenthesis")
 	ErrUnexpectedEOL    = errors.New("unexpected end of input")
+	ErrExpectedEOL      = errors.New("last token is expected to be the end of input")
 	ErrMissingLPar      = errors.New("cannot find matching left parenthesis")
 	ErrMissingRPar      = errors.New("cannot find matching right parenthesis")
+	ErrUnsupportedToken = errors.New("unsupported token")
 )
 
 type Parser struct {
 	priorities parser.TokenPriorities
 }
 
-func NewParser(priorities parser.TokenPriorities) parser.Parser {
+func NewParser(priorities parser.TokenPriorities) (parser.Parser, error) {
+	if err := priorities.Normalize(); err != nil {
+		return nil, err
+	}
 	return &Parser{
 		priorities: priorities,
+	}, nil
+}
+
+func normalizeTokenList(tokenList []*lexer.Token) ([]*lexer.Token, error) {
+	noWhiteSpaceList := make([]*lexer.Token, 0)
+	for _, v := range tokenList {
+		if v.Type() != lexer.Whitespace {
+			noWhiteSpaceList = append(noWhiteSpaceList, v)
+		}
 	}
+
+	if len(noWhiteSpaceList) == 0 {
+		return nil, parser.ParseError(nil, ErrEmptyInput)
+	}
+	if lastToken := noWhiteSpaceList[len(noWhiteSpaceList)-1]; lastToken.Type() != lexer.EOL {
+		return nil, parser.ParseError(lastToken, ErrExpectedEOL)
+	}
+
+	return noWhiteSpaceList, nil
 }
 
 // Parse uses Shunting Yard algorithm to parse the input.
@@ -46,8 +68,8 @@ func (p *Parser) Parse(tokenList []*lexer.Token) (ast.Node, error) {
 	opStack := make([]*lexer.Token, 0)
 	var err error
 
-	if len(tokenList) == 0 {
-		return nil, parser.ParseError(nil, ErrEmptyInput)
+	if tokenList, err = normalizeTokenList(tokenList); err != nil {
+		return nil, err
 	}
 
 tokenLoop:
@@ -55,14 +77,11 @@ tokenLoop:
 		curToken := tokenList[i]
 
 		switch curToken.Type() {
-		case lexer.Whitespace:
-			continue
-
 		case lexer.Number:
 			expect, output, err = p.handleNumber(expect, curToken, output)
 
 		case lexer.Identifier:
-			expect, opStack, output, err = p.handleIdentifier(expect, tokenList, i, opStack, output)
+			expect, opStack, output, err = p.handleIdentifier(expect, curToken, tokenList[i+1], opStack, output)
 
 		case lexer.UnaryAddition, lexer.UnarySubstraction, lexer.Addition, lexer.Substraction:
 			// If the received token is Addition or Substraction and we expect operand, it is probably unary operator
@@ -87,7 +106,7 @@ tokenLoop:
 			}
 			break tokenLoop
 		default:
-			return nil, fmt.Errorf("parser internal error, unhandled '%s' type", curToken.Type())
+			return nil, parser.ParseError(curToken, ErrUnsupportedToken)
 		}
 
 		if err != nil {
@@ -138,29 +157,21 @@ func (*Parser) handleNumber(
 // if operator is expected, returns error
 func (*Parser) handleIdentifier(
 	expect expectState,
-	tokenList []*lexer.Token,
-	currIndex int,
+	curToken *lexer.Token,
+	nextToken *lexer.Token,
 	opStack []*lexer.Token,
 	output []ast.Node,
 ) (expectState, []*lexer.Token, []ast.Node, error) {
 	if expect == operatorToken {
-		return expect, opStack, output, parser.ParseError(tokenList[currIndex], ErrExpectedOperator)
+		return expect, opStack, output, parser.ParseError(curToken, ErrExpectedOperator)
 	}
-	// Find next token to decide if identifier is function
-	nextTokenType := lexer.EOL
-	for n := currIndex + 1; n < len(tokenList); n++ {
-		if tokenList[n].Type() != lexer.Whitespace {
-			nextTokenType = tokenList[n].Type()
-			break
-		}
-	}
-	if nextTokenType == lexer.LPar {
+	if nextToken.Type() == lexer.LPar {
 		// Expecting the identifier is function name, because is followed by (
-		opStack = append(opStack, tokenList[currIndex])
+		opStack = append(opStack, curToken)
 		expect = operandToken
 	} else {
 		// Identifier is variable name
-		output = append(output, ast.NewVariableNode(tokenList[currIndex].Identifier(), tokenList[currIndex]))
+		output = append(output, ast.NewVariableNode(curToken.Identifier(), curToken))
 		expect = operatorToken
 	}
 
@@ -172,14 +183,6 @@ func (*Parser) handleUnary(
 	curToken *lexer.Token,
 	opStack []*lexer.Token,
 ) ([]*lexer.Token, error) {
-	if len(opStack) > 0 {
-		// When unary operator is found, the expect flag is not changing
-		// It is required to check last element of operator stack. If is unary, throw error
-		lastOp := opStack[len(opStack)-1]
-		if lastOp.Type() == lexer.UnaryAddition || lastOp.Type() == lexer.UnarySubstraction {
-			return nil, parser.ParseError(curToken, ErrMultipleUnary)
-		}
-	}
 	if err := curToken.ChangeToUnary(); err != nil {
 		return nil, err
 	}
@@ -320,7 +323,7 @@ func (p *Parser) addToOutput(output []ast.Node, token *lexer.Token) ([]ast.Node,
 		if len(output) < 1 {
 			return nil, errors.New("internal error, missing value for function")
 		}
-		output[len(output)-1] = ast.NewFunctionNode(token.Identifier(), output[len(output)-1], token)
+		output[len(output)-1] = ast.NewFunctionNode(token.Identifier(), []ast.Node{output[len(output)-1]}, token)
 	default:
 		return nil, fmt.Errorf("unexpected token '%s' received to add to output", t.String())
 	}

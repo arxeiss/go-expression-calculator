@@ -22,6 +22,7 @@ var _ Node = &NumericNode{}
 var _ Node = &VariableNode{}
 var _ Node = &UnaryNode{}
 var _ Node = &BinaryNode{}
+var _ Node = &AssignNode{}
 var _ Node = &FunctionNode{}
 
 type NumericNode struct {
@@ -130,29 +131,60 @@ func (n *BinaryNode) GetToken() *lexer.Token {
 	return n.token
 }
 
-type FunctionNode struct {
-	name  string
-	param Node
+type AssignNode struct {
+	left  *VariableNode
+	right Node
 	token *lexer.Token
 }
 
-func NewFunctionNode(name string, param Node, token *lexer.Token) *FunctionNode {
-	return &FunctionNode{
-		name:  name,
-		param: param,
+func NewAssignNode(left *VariableNode, right Node, token *lexer.Token) *AssignNode {
+	return &AssignNode{
+		left:  left,
+		right: right,
 		token: token,
 	}
 }
 
-func (n *FunctionNode) Param() Node {
-	return n.param
+func (n *AssignNode) Left() *VariableNode {
+	return n.left
+}
+func (n *AssignNode) Right() Node {
+	return n.right
+}
+func (n *AssignNode) toTreeDrawer(t *tree.Tree) {
+	t.SetVal(tree.NodeString(Assign.String()))
+	n.left.toTreeDrawer(t.AddChild(nil))
+	n.right.toTreeDrawer(t.AddChild(nil))
+}
+func (n *AssignNode) GetToken() *lexer.Token {
+	return n.token
+}
+
+type FunctionNode struct {
+	name   string
+	params []Node
+	token  *lexer.Token
+}
+
+func NewFunctionNode(name string, params []Node, token *lexer.Token) *FunctionNode {
+	return &FunctionNode{
+		name:   name,
+		params: params,
+		token:  token,
+	}
+}
+
+func (n *FunctionNode) Params() []Node {
+	return n.params
 }
 func (n *FunctionNode) Name() string {
 	return n.name
 }
 func (n *FunctionNode) toTreeDrawer(t *tree.Tree) {
 	t.SetVal(tree.NodeString(n.name + "()"))
-	n.param.toTreeDrawer(t.AddChild(nil))
+	for _, v := range n.params {
+		v.toTreeDrawer(t.AddChild(nil))
+	}
 }
 func (n *FunctionNode) GetToken() *lexer.Token {
 	return n.token

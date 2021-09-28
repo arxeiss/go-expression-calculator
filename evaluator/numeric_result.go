@@ -11,8 +11,11 @@ import (
 )
 
 type FunctionHandler struct {
-	Description string
-	Handler     func(x ...float64) (float64, error)
+	Description  string
+	Handler      func(x ...float64) (float64, error)
+	MinArguments int
+	MaxArguments int
+	ArgsNames    []string
 }
 
 type NumericEvaluator struct {
@@ -25,7 +28,8 @@ type VariableTuple struct {
 	Value float64
 }
 type FunctionTuple struct {
-	Name, Description string
+	Name     string
+	Function FunctionHandler
 }
 
 func NewNumericEvaluator(vars map[string]float64, functions ...map[string]FunctionHandler) (*NumericEvaluator, error) {
@@ -89,7 +93,10 @@ func (e *NumericEvaluator) FunctionList() []FunctionTuple {
 
 	ret := make([]FunctionTuple, 0, len(keys))
 	for _, k := range keys {
-		ret = append(ret, FunctionTuple{Name: k, Description: e.functions[k].Description})
+		ret = append(ret, FunctionTuple{
+			Name:     k,
+			Function: e.functions[k],
+		})
 	}
 
 	return ret
@@ -108,10 +115,17 @@ func (e *NumericEvaluator) Eval(rootNode ast.Node) (float64, error) {
 			return v, nil
 		}
 		return 0, EvalError(n.GetToken(), fmt.Errorf("undefined variable '%s'", n.Name()))
+	case *ast.AssignNode:
+		val, err := e.Eval(n.Right())
+		if err != nil {
+			return 0, err
+		}
+		e.variables[strings.ToLower(n.Left().Name())] = val
+		return val, nil
 	case *ast.NumericNode:
 		return n.Value(), nil
 	}
-	return 0, EvalError(rootNode.GetToken(), fmt.Errorf("unimplemented node type %T", e))
+	return 0, EvalError(rootNode.GetToken(), fmt.Errorf("unimplemented node type %T", rootNode))
 }
 
 func (e *NumericEvaluator) handleUnary(n *ast.UnaryNode) (float64, error) {
@@ -165,10 +179,46 @@ func (e *NumericEvaluator) handleFunction(n *ast.FunctionNode) (float64, error) 
 	if !has {
 		return 0, EvalError(n.GetToken(), fmt.Errorf("undefined function '%s'", n.Name()))
 	}
-	v, err := e.Eval(n.Param())
-	if err != nil {
-		return 0, err
+
+	params := n.Params()
+	paramsCount := len(params)
+	switch {
+	case f.MinArguments == f.MaxArguments && paramsCount != f.MinArguments:
+		return 0, EvalError(n.GetToken(), fmt.Errorf(
+			"function '%s' require %d arguments, got %d",
+			n.Name(),
+			f.MinArguments,
+			paramsCount,
+		))
+	case paramsCount < f.MinArguments && f.MaxArguments == 0:
+		return 0, EvalError(n.GetToken(), fmt.Errorf(
+			"function '%s' require at least %d arguments, got %d",
+			n.Name(),
+			f.MinArguments,
+			paramsCount,
+		))
+	case paramsCount < f.MinArguments || f.MaxArguments > 0 && paramsCount > f.MaxArguments:
+		return 0, EvalError(n.GetToken(), fmt.Errorf(
+			"function '%s' require between %d and %d arguments, got %d",
+			n.Name(),
+			f.MinArguments,
+			f.MaxArguments,
+			paramsCount,
+		))
 	}
 
-	return f.Handler(v)
+	args := []float64{}
+	for _, p := range params {
+		v, err := e.Eval(p)
+		if err != nil {
+			return 0, err
+		}
+		args = append(args, v)
+	}
+
+	val, err := f.Handler(args...)
+	if err != nil {
+		return 0, EvalError(n.GetToken(), fmt.Errorf("%s in function '%s'", err.Error(), n.Name()))
+	}
+	return val, nil
 }

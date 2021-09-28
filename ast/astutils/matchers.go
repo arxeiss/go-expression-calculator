@@ -21,6 +21,12 @@ type binaryMatcher struct {
 	failures  []error
 }
 
+type assignMatcher struct {
+	left     types.GomegaMatcher
+	right    types.GomegaMatcher
+	failures []error
+}
+
 type unaryMatcher struct {
 	operation ast.Operation
 	next      types.GomegaMatcher
@@ -39,7 +45,7 @@ type variableMatcher struct {
 
 type functionMatcher struct {
 	name     interface{}
-	param    types.GomegaMatcher
+	params   []types.GomegaMatcher
 	failures []error
 }
 
@@ -48,6 +54,12 @@ func MatchBinaryNode(operation ast.Operation, left types.GomegaMatcher, right ty
 		operation: operation,
 		left:      left,
 		right:     right,
+	}
+}
+func MatchAssignNode(left types.GomegaMatcher, right types.GomegaMatcher) types.GomegaMatcher {
+	return &assignMatcher{
+		left:  left,
+		right: right,
 	}
 }
 func MatchUnaryNode(operation ast.Operation, node types.GomegaMatcher) types.GomegaMatcher {
@@ -71,10 +83,10 @@ func MatchVariableNode(name interface{}) types.GomegaMatcher {
 	}
 }
 
-func MatchFunctionNode(name interface{}, param types.GomegaMatcher) types.GomegaMatcher {
+func MatchFunctionNode(name interface{}, params ...types.GomegaMatcher) types.GomegaMatcher {
 	return &functionMatcher{
-		name:  name,
-		param: param,
+		name:   name,
+		params: params,
 	}
 }
 
@@ -129,6 +141,24 @@ func (matcher *binaryMatcher) FailureMessage(actual interface{}) (message string
 }
 
 func (matcher *binaryMatcher) NegatedFailureMessage(actual interface{}) (message string) {
+	return fmt.Sprintf("not to match node %s", format.Object(actual, 0))
+}
+
+func (matcher *assignMatcher) Match(actual interface{}) (success bool, err error) {
+	if node, ok := actual.(*ast.AssignNode); ok {
+		matcher.failures = matchNode(matcher.left, node.Left(), " -> Left", matcher.failures)
+		matcher.failures = matchNode(matcher.right, node.Right(), " -> Right", matcher.failures)
+
+		return len(matcher.failures) == 0, nil
+	}
+	return false, fmt.Errorf("matcher MatchAssignNode expects a `*ast.AssignNode` Got:\n%s", format.Object(actual, 1))
+}
+
+func (matcher *assignMatcher) FailureMessage(actual interface{}) (message string) {
+	return formatFailureMessage(matcher.failures, actual)
+}
+
+func (matcher *assignMatcher) NegatedFailureMessage(actual interface{}) (message string) {
 	return fmt.Sprintf("not to match node %s", format.Object(actual, 0))
 }
 
@@ -211,7 +241,18 @@ func (matcher *functionMatcher) Match(actual interface{}) (success bool, err err
 			valMatcher = gomega.Equal(matcher.name)
 		}
 		matcher.failures = matchNode(valMatcher, node.Name(), " -> Name", matcher.failures)
-		matcher.failures = matchNode(matcher.param, node.Param(), " -> Param", matcher.failures)
+
+		params := node.Params()
+		if len(matcher.params) != len(params) {
+			matcher.failures = append(
+				matcher.failures,
+				fmt.Errorf("function expecting %d input parameters, got %d", len(matcher.params), len(params)),
+			)
+		} else {
+			for i, m := range matcher.params {
+				matcher.failures = matchNode(m, params[i], fmt.Sprintf(" -> %d. Param", i), matcher.failures)
+			}
+		}
 
 		return len(matcher.failures) == 0, nil
 	}

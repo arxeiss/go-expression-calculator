@@ -15,8 +15,9 @@ import (
 )
 
 var _ = Describe("Successful parsing", func() {
-	It("All token types", func() {
-		p := shuntyard.NewParser(parser.DefaultTokenPriorities())
+	It("All supported token types", func() {
+		p, err := shuntyard.NewParser(parser.DefaultTokenPriorities())
+		Expect(err).To(Succeed())
 		input := []*lexer.Token{
 			/* ( */ lexer.NewToken(lexer.LPar, 0, "", 0, 0),
 			/* 30 */ lexer.NewToken(lexer.Number, 30, "", 0, 0),
@@ -85,7 +86,8 @@ var _ = Describe("Successful parsing", func() {
 	})
 
 	It("Starts with unary substraction and number", func() {
-		p := shuntyard.NewParser(parser.DefaultTokenPriorities())
+		p, err := shuntyard.NewParser(parser.DefaultTokenPriorities())
+		Expect(err).To(Succeed())
 		input := []*lexer.Token{
 			lexer.NewToken(lexer.Substraction, 0, "", 0, 0),
 			lexer.NewToken(lexer.Number, 46, "", 0, 0),
@@ -101,8 +103,48 @@ var _ = Describe("Successful parsing", func() {
 		))
 	})
 
+	It("Simple multiple unary expressions", func() {
+		p, err := shuntyard.NewParser(parser.DefaultTokenPriorities())
+		Expect(err).To(Succeed())
+		input := []*lexer.Token{
+			lexer.NewToken(lexer.Number, 20, "", 0, 0),
+			lexer.NewToken(lexer.Substraction, 0, "", 0, 0),
+			lexer.NewToken(lexer.Substraction, 0, "", 0, 0),
+			lexer.NewToken(lexer.Substraction, 0, "", 0, 0),
+			lexer.NewToken(lexer.Substraction, 0, "", 0, 0),
+			lexer.NewToken(lexer.Number, 5, "", 0, 0),
+			lexer.NewToken(lexer.Addition, 0, "", 0, 0),
+			lexer.NewToken(lexer.Addition, 0, "", 0, 0),
+			lexer.NewToken(lexer.Number, 7, "", 0, 0),
+			lexer.NewToken(lexer.EOL, 0, "", 0, 0),
+		}
+		rootNode, err := p.Parse(input)
+		Expect(err).To(Succeed())
+		Expect(rootNode).NotTo(BeNil())
+
+		Expect(rootNode).To(MatchBinaryNode(
+			ast.Addition,
+			MatchBinaryNode(
+				ast.Substraction,
+				MatchNumericNode(20),
+				MatchUnaryNode(
+					ast.Substraction,
+					MatchUnaryNode(
+						ast.Substraction,
+						MatchUnaryNode(
+							ast.Substraction,
+							MatchNumericNode(5),
+						),
+					),
+				),
+			),
+			MatchUnaryNode(ast.Addition, MatchNumericNode(7)),
+		))
+	})
+
 	It("Nested unary operators in parenthesis", func() {
-		p := shuntyard.NewParser(parser.DefaultTokenPriorities())
+		p, err := shuntyard.NewParser(parser.DefaultTokenPriorities())
+		Expect(err).To(Succeed())
 		input := []*lexer.Token{
 			lexer.NewToken(lexer.Addition, 0, "", 0, 0),
 			lexer.NewToken(lexer.LPar, 0, "", 0, 0),
@@ -134,7 +176,8 @@ var _ = Describe("Successful parsing", func() {
 	})
 
 	It("Handles unary operators in a row", func() {
-		p := shuntyard.NewParser(parser.DefaultTokenPriorities())
+		p, err := shuntyard.NewParser(parser.DefaultTokenPriorities())
+		Expect(err).To(Succeed())
 		input := []*lexer.Token{
 			lexer.NewToken(lexer.Number, 11, "", 0, 0),
 			lexer.NewToken(lexer.Addition, 0, "", 0, 0),
@@ -174,7 +217,8 @@ var _ = Describe("Successful parsing", func() {
 	})
 
 	It("Correctly handles right associativity", func() {
-		p := shuntyard.NewParser(parser.DefaultTokenPriorities())
+		p, err := shuntyard.NewParser(parser.DefaultTokenPriorities())
+		Expect(err).To(Succeed())
 		input := []*lexer.Token{
 			lexer.NewToken(lexer.Identifier, 0, "i", 0, 0),
 			lexer.NewToken(lexer.Exponent, 0, "", 0, 0),
@@ -210,47 +254,12 @@ var _ = Describe("Successful parsing", func() {
 			),
 		))
 	})
-
-	It("Check function has higher priority if identifier is lower", func() {
-		priorities := parser.DefaultTokenPriorities()
-		priorities[lexer.Identifier] = parser.TokenMeta{Precedence: 10}
-		input := []*lexer.Token{
-			lexer.NewToken(lexer.Number, 77, "", 0, 0),
-			lexer.NewToken(lexer.FloorDiv, 0, "", 0, 0),
-			lexer.NewToken(lexer.Substraction, 0, "", 0, 0),
-			lexer.NewToken(lexer.Identifier, 0, "cc", 0, 0),
-			lexer.NewToken(lexer.LPar, 0, "", 0, 0),
-			lexer.NewToken(lexer.Identifier, 0, "a", 0, 0),
-			lexer.NewToken(lexer.Multiplication, 0, "", 0, 0),
-			lexer.NewToken(lexer.Identifier, 0, "b", 0, 0),
-			lexer.NewToken(lexer.RPar, 0, "", 0, 0),
-			lexer.NewToken(lexer.EOL, 0, "", 0, 0),
-		}
-		rootNode, err := shuntyard.NewParser(priorities).Parse(input)
-		Expect(err).To(Succeed())
-		Expect(rootNode).NotTo(BeNil())
-
-		Expect(rootNode).To(MatchBinaryNode(
-			ast.FloorDiv,
-			MatchNumericNode(77),
-			MatchUnaryNode(
-				ast.Substraction,
-				MatchFunctionNode(
-					"cc",
-					MatchBinaryNode(
-						ast.Multiplication,
-						MatchVariableNode("a"),
-						MatchVariableNode("b"),
-					),
-				),
-			),
-		))
-	})
 })
 
 var _ = DescribeTable("Handle errors",
 	func(input []*lexer.Token, posMatcher, errMatcher types.GomegaMatcher) {
-		p := shuntyard.NewParser(parser.DefaultTokenPriorities())
+		p, err := shuntyard.NewParser(parser.DefaultTokenPriorities())
+		Expect(err).To(Succeed())
 
 		rootNode, err := p.Parse(input)
 		Expect(rootNode).To(BeNil())
@@ -261,17 +270,39 @@ var _ = DescribeTable("Handle errors",
 		Expect(parseErr.Error()).To(errMatcher)
 	},
 	Entry("Empty token list", []*lexer.Token{}, Equal(-1), ContainSubstring(shuntyard.ErrEmptyInput.Error())),
+	Entry("Not EOL at the end", []*lexer.Token{
+		lexer.NewToken(lexer.Identifier, 0, "abc", 0, 3),
+	}, Equal(0), ContainSubstring(shuntyard.ErrExpectedEOL.Error())),
+
+	Entry("Assignment to variable is not supported by this algorithm", []*lexer.Token{
+		lexer.NewToken(lexer.Identifier, 0, "abc", 0, 3),
+		lexer.NewToken(lexer.Equal, 0, "", 3, 4),
+		lexer.NewToken(lexer.Number, 123, "", 4, 7),
+		lexer.NewToken(lexer.EOL, 0, "", 7, 7),
+	}, Equal(3), ContainSubstring("unsupported token; found Equal token at position 3")),
+
+	Entry("Function with multiple arguments is not supported by this algorithm", []*lexer.Token{
+		lexer.NewToken(lexer.Identifier, 0, "sin", 0, 3),
+		lexer.NewToken(lexer.LPar, 0, "", 3, 4),
+		lexer.NewToken(lexer.Number, 23, "", 4, 6),
+		lexer.NewToken(lexer.Comma, 0, "", 6, 7),
+		lexer.NewToken(lexer.Number, 46, "", 7, 9),
+		lexer.NewToken(lexer.RPar, 0, "", 9, 10),
+		lexer.NewToken(lexer.EOL, 0, "", 10, 10),
+	}, Equal(6), ContainSubstring("unsupported token; found Comma token at position 6")),
 
 	Entry("Two number tokens in a row", []*lexer.Token{
 		lexer.NewToken(lexer.Number, 20, "", 0, 2),
 		lexer.NewToken(lexer.Whitespace, 0, " ", 2, 3),
 		lexer.NewToken(lexer.Number, 20, "", 3, 5),
+		lexer.NewToken(lexer.EOL, 0, "", 5, 5),
 	}, Equal(3), ContainSubstring("expected operator or right parenthesis; found Number token at position 3")),
 
 	Entry("First token must be operand",
 		[]*lexer.Token{
 			lexer.NewToken(lexer.Whitespace, 0, " ", 0, 1),
 			lexer.NewToken(lexer.Division, 0, "", 1, 2),
+			lexer.NewToken(lexer.EOL, 0, "", 2, 2),
 		},
 		Equal(1),
 		ContainSubstring("expected number, identifier or left parenthesis; found Division token at position 1"),
@@ -280,6 +311,7 @@ var _ = DescribeTable("Handle errors",
 		lexer.NewToken(lexer.Number, 20, "", 0, 2),
 		lexer.NewToken(lexer.Whitespace, 0, "  ", 3, 4),
 		lexer.NewToken(lexer.Identifier, 0, "VariableName", 4, 16),
+		lexer.NewToken(lexer.EOL, 0, "", 16, 16),
 	}, Equal(4), ContainSubstring("expected operator or right parenthesis; found Identifier token at position 4")),
 
 	Entry("Multiple unary operators in a row",
@@ -289,15 +321,18 @@ var _ = DescribeTable("Handle errors",
 			lexer.NewToken(lexer.Addition, 0, "", 5, 6),
 			lexer.NewToken(lexer.Substraction, 0, "", 6, 7),
 			lexer.NewToken(lexer.Substraction, 0, "", 7, 8),
+			lexer.NewToken(lexer.EOL, 0, "", 8, 8),
 		},
-		Equal(7),
-		ContainSubstring("too many unary operators in a row; found Substraction token at position 7"),
+		Equal(8),
+		ContainSubstring("unexpected end of input; found EOL token at position 8"),
 	),
+
 	Entry("Unexpected operator after another operator - not unary",
 		[]*lexer.Token{
 			lexer.NewToken(lexer.Number, 20, "", 0, 2),
 			lexer.NewToken(lexer.Addition, 0, "", 2, 3),
 			lexer.NewToken(lexer.Division, 0, "", 3, 4),
+			lexer.NewToken(lexer.EOL, 0, "", 4, 4),
 		},
 		Equal(3),
 		ContainSubstring("expected number, identifier or left parenthesis; found Division token at position 3"),
@@ -306,6 +341,7 @@ var _ = DescribeTable("Handle errors",
 		[]*lexer.Token{
 			lexer.NewToken(lexer.Number, 20, "", 0, 2),
 			lexer.NewToken(lexer.LPar, 0, "", 2, 3),
+			lexer.NewToken(lexer.EOL, 0, "", 3, 3),
 		},
 		Equal(2),
 		ContainSubstring("expected operator or right parenthesis; found LPar token at position 2"),
@@ -316,6 +352,7 @@ var _ = DescribeTable("Handle errors",
 			lexer.NewToken(lexer.Number, 20, "", 1, 3),
 			lexer.NewToken(lexer.Exponent, 0, "", 3, 5),
 			lexer.NewToken(lexer.RPar, 0, "", 5, 6),
+			lexer.NewToken(lexer.EOL, 0, "", 6, 6),
 		},
 		Equal(5),
 		ContainSubstring("expected number, identifier or left parenthesis; found RPar token at position 5"),
@@ -336,6 +373,7 @@ var _ = DescribeTable("Handle errors",
 			lexer.NewToken(lexer.LPar, 0, "", 5, 6),
 			lexer.NewToken(lexer.Number, 123, "", 6, 9),
 			lexer.NewToken(lexer.RPar, 0, "", 9, 10),
+			lexer.NewToken(lexer.EOL, 0, "", 10, 10),
 		},
 		Equal(4),
 		ContainSubstring("cannot find matching right parenthesis; found LPar token at position 4"),
@@ -347,6 +385,7 @@ var _ = DescribeTable("Handle errors",
 			lexer.NewToken(lexer.Number, 123, "", 3, 6),
 			lexer.NewToken(lexer.RPar, 0, "", 7, 8),
 			lexer.NewToken(lexer.RPar, 0, "", 8, 9),
+			lexer.NewToken(lexer.EOL, 0, "", 9, 9),
 		},
 		Equal(8),
 		ContainSubstring("cannot find matching left parenthesis; found RPar token at position 8"),

@@ -8,11 +8,14 @@ test: tests
 tests:
 	go test -v -covermode=count -coverpkg github.com/arxeiss/go-expression-calculator/... -coverprofile=coverage.full.out ./...
 	# Remove cmd package from coverage, see https://dev.to/arxeiss/false-positive-go-code-coverage-3k7j
-	cat coverage.full.out | grep -v "go-expression-calculator/cmd/" > coverage.out
+	cat coverage.full.out | grep -v "go-expression-calculator/cmd/" | grep -v "go-expression-calculator/ast/astutils" > coverage.out
 	rm -f coverage.full.out
 
 coverage: tests
 	go tool cover -func coverage.out
+
+coverage_browser: tests
+	go tool cover -html coverage.out
 
 lint:
 	golangci-lint run ./...

@@ -122,7 +122,7 @@ func formatFailureMessage(failures []error, actual interface{}) string {
 		n = t.Elem().Name()
 	}
 
-	return fmt.Sprintf("Expected to %s to match: \n%v\n", n, strings.Join(strFailures, "\n"))
+	return fmt.Sprintf("Expected to '%s' matches: \n%v\n", n, strings.Join(strFailures, "\n"))
 }
 
 func (matcher *binaryMatcher) Match(actual interface{}) (success bool, err error) {
